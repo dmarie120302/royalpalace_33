@@ -4,6 +4,11 @@ import { useState, type FormEvent } from "react";
 import type { MutationInput, Resource, Workspace } from "@/domain/types";
 import { money, toCents, today } from "@/domain/finance";
 import { ErrorBox, Field, Modal } from "@/components/ui";
+import {
+  emailToUsername,
+  isValidUsername,
+  usernameToEmail,
+} from "@/domain/access";
 
 export interface EditorTarget {
   resource: Resource;
@@ -107,7 +112,7 @@ export function EntityForm({
     color: asString(record.color) || "#514ac8",
     trade: asString(record.trade),
     phone: asString(record.phone),
-    email: asString(record.email),
+    email: emailToUsername(asString(record.email)),
     method: asString(record.method) || "Transferencia",
     store: asString(record.store),
     quantity: asString(record.quantity),
@@ -327,12 +332,18 @@ export function EntityForm({
       if (["spaces", "phases", "categories", "contractors"].includes(resource))
         input.color = values.color;
       if (resource === "phases") input.space_ids = spaces;
-      if (resource === "contractors")
+      if (resource === "contractors") {
+        const username = values.email.trim().toLowerCase();
+        if (username && !username.includes("@") && !isValidUsername(username))
+          throw new Error(
+            "El usuario debe tener de 3 a 30 letras minúsculas, números, puntos, guiones o guiones bajos, sin espacios.",
+          );
         Object.assign(input, {
           trade: values.trade.trim(),
           phone: values.phone.trim(),
-          email: values.email.trim().toLowerCase(),
+          email: username.includes("@") ? username : usernameToEmail(username),
         });
+      }
       await onSave(resource, input);
       onClose();
     } catch (cause) {
@@ -613,8 +624,12 @@ export function EntityForm({
               <Field label="Teléfono">
                 {input("phone", { type: "tel", maxLength: 40 })}
               </Field>
-              <Field label="Correo para invitar al portal" wide>
-                {input("email", { type: "email" })}
+              <Field
+                label="Usuario para el portal"
+                wide
+                hint="Ej. carlos. Después podrás crear su código de acceso."
+              >
+                {input("email", { placeholder: "carlos", maxLength: 60 })}
               </Field>
             </>
           )}

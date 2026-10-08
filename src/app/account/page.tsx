@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { browserClient } from "@/infrastructure/supabase/browser";
 import { AuthCover } from "@/components/auth-cover";
+import { isValidPin } from "@/domain/access";
 export default function Account() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -36,7 +37,7 @@ export default function Account() {
       } catch {
         if (!cancelled)
           setMessage(
-            "Abre un enlace de invitación o recuperación válido para configurar tu contraseña.",
+            "Inicia sesión con tu usuario y código para cambiar tu código.",
           );
       }
     }
@@ -52,7 +53,12 @@ export default function Account() {
     const form = new FormData(event.currentTarget);
     const password = String(form.get("password"));
     if (password !== form.get("confirm")) {
-      setMessage("Las contraseñas deben coincidir.");
+      setMessage("Los códigos deben coincidir.");
+      setBusy(false);
+      return;
+    }
+    if (!isValidPin(password)) {
+      setMessage("El código debe tener exactamente 6 números.");
       setBusy(false);
       return;
     }
@@ -64,7 +70,7 @@ export default function Account() {
       window.location.assign("/");
     } catch {
       setMessage(
-        "No se pudo actualizar. Abre un enlace de invitación o recuperación válido.",
+        "No se pudo actualizar el código. Inicia sesión e inténtalo de nuevo.",
       );
     } finally {
       setBusy(false);
@@ -74,27 +80,31 @@ export default function Account() {
     <main className="auth-page">
       <section className="auth-card">
         <AuthCover />
-        <h1>Configura tu contraseña</h1>
-        <p>Utiliza al menos 12 caracteres para proteger tu cuenta.</p>
+        <h1>Cambia tu código</h1>
+        <p>Tu código debe tener 6 números.</p>
         <form onSubmit={submit}>
-          <label htmlFor="password">Nueva contraseña</label>
+          <label htmlFor="password">Nuevo código</label>
           <input
             id="password"
             name="password"
             type="password"
             autoComplete="new-password"
-            minLength={12}
-            maxLength={128}
+            inputMode="numeric"
+            pattern="[0-9]{6}"
+            minLength={6}
+            maxLength={6}
             required
           />
-          <label htmlFor="confirm">Repetir contraseña</label>
+          <label htmlFor="confirm">Repetir código</label>
           <input
             id="confirm"
             name="confirm"
             type="password"
             autoComplete="new-password"
-            minLength={12}
-            maxLength={128}
+            inputMode="numeric"
+            pattern="[0-9]{6}"
+            minLength={6}
+            maxLength={6}
             required
           />
           {message && (
@@ -103,7 +113,7 @@ export default function Account() {
             </p>
           )}
           <button className="button primary" disabled={busy || !ready}>
-            {busy ? "Guardando…" : "Guardar contraseña"}
+            {busy ? "Guardando…" : "Guardar código"}
           </button>
         </form>
       </section>

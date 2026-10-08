@@ -128,7 +128,7 @@ test.describe("ciclo de una obra con backend real", () => {
         .fill("Pintura");
       if (contractorEmail)
         await contractorDialog
-          .getByLabel("Correo para invitar al portal", { exact: true })
+          .getByLabel("Usuario para el portal", { exact: true })
           .fill(contractorEmail);
       const contractorId = await save(page, contractorDialog, "contractors");
 

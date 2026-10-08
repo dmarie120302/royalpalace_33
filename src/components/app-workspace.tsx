@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Resource, Workspace } from "@/domain/types";
 import { Icon, type IconName } from "./icons";
 import { money, projectSummary } from "@/domain/finance";
+import { isValidPin } from "@/domain/access";
 import { ErrorBox, Modal } from "./ui";
 import { api, useWorkspace } from "@/features/workspace/use-workspace";
 import {
@@ -97,6 +98,12 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
   const [archiveBusy, setArchiveBusy] = useState(false);
   const [archiveError, setArchiveError] = useState("");
   const [inviteBusy, setInviteBusy] = useState(false);
+  const [accessTarget, setAccessTarget] = useState<{
+    id: string;
+    name: string;
+    linked: boolean;
+  } | null>(null);
+  const [accessError, setAccessError] = useState("");
   const [currentDate] = useState(() =>
     new Intl.DateTimeFormat("es-PA", {
       day: "numeric",
@@ -162,25 +169,50 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
       setArchiveBusy(false);
     }
   }
-  async function invite(contractorId: string) {
-    if (!project || inviteBusy) return;
+  function invite(contractorId: string) {
+    const contractor = data.contractors.find(
+      (item) => item.id === contractorId,
+    );
+    if (!contractor) return;
+    setAccessError("");
+    setAccessTarget({
+      id: contractor.id,
+      name: contractor.name,
+      linked: !!contractor.user_id,
+    });
+  }
+  async function saveAccess(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!project || !accessTarget || inviteBusy) return;
+    const form = new FormData(event.currentTarget);
+    const pin = String(form.get("pin"));
+    if (!isValidPin(pin)) {
+      setAccessError("El código debe tener exactamente 6 números.");
+      return;
+    }
+    if (pin !== form.get("pin_confirm")) {
+      setAccessError("Los códigos deben coincidir.");
+      return;
+    }
     setInviteBusy(true);
+    setAccessError("");
     try {
       const result = await api<{ message: string }>("/api/invitations", {
         method: "POST",
         body: JSON.stringify({
           project_id: project.id,
-          contractor_id: contractorId,
+          contractor_id: accessTarget.id,
+          pin,
         }),
       });
+      setAccessTarget(null);
       await refresh();
-      notify(result.message || "Invitación enviada.");
+      notify(result.message || "Acceso guardado.");
     } catch (cause) {
-      notify(
+      setAccessError(
         cause instanceof Error
           ? cause.message
-          : "No se pudo enviar la invitación.",
-        true,
+          : "No se pudo guardar el acceso.",
       );
     } finally {
       setInviteBusy(false);
@@ -239,7 +271,9 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
               value={project?.id || ""}
               onChange={(event) => selectProject(event.target.value || null)}
             >
-              <option value="">Todas las obras ({activeProjects.length})</option>
+              <option value="">
+                Todas las obras ({activeProjects.length})
+              </option>
               {activeProjects.map((item) => (
                 <option value={item.id} key={item.id}>
                   {item.name}
@@ -466,8 +500,59 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
           </button>
         </output>
       )}
-      {inviteBusy && (
-        <output className="operation-status">Enviando invitación…</output>
+      {accessTarget && (
+        <Modal
+          title={accessTarget.linked ? "Cambiar código" : "Crear acceso"}
+          busy={inviteBusy}
+          onClose={() => setAccessTarget(null)}
+        >
+          <form className="entity-form" onSubmit={saveAccess}>
+            <p className="confirm-text">
+              Código de 6 números para <strong>{accessTarget.name}</strong>.
+              Compártelo solo con esa persona.
+            </p>
+            <div className="form-grid">
+              <label className="form-field">
+                <span>Código</span>
+                <input
+                  name="pin"
+                  type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  autoComplete="new-password"
+                  required
+                />
+              </label>
+              <label className="form-field">
+                <span>Repetir código</span>
+                <input
+                  name="pin_confirm"
+                  type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  autoComplete="new-password"
+                  required
+                />
+              </label>
+            </div>
+            {accessError && <ErrorBox message={accessError} />}
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="button secondary"
+                disabled={inviteBusy}
+                onClick={() => setAccessTarget(null)}
+              >
+                Cancelar
+              </button>
+              <button className="button" type="submit" disabled={inviteBusy}>
+                {inviteBusy ? "Guardando…" : "Guardar código"}
+              </button>
+            </div>
+          </form>
+        </Modal>
       )}
       {editor && (
         <EntityForm

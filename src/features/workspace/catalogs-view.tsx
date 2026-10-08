@@ -6,6 +6,7 @@ import { money } from "@/domain/finance";
 import { Icon } from "@/components/icons";
 import { Empty, Progress } from "@/components/ui";
 import { matches, type ViewProps } from "./view-types";
+import { emailToUsername } from "@/domain/access";
 
 export function ContractorsView({
   data,
@@ -20,7 +21,7 @@ export function ContractorsView({
     (item) =>
       item.project_id === project.id &&
       !item.archived_at &&
-      matches(query, item.name, item.trade, item.email),
+      matches(query, item.name, item.trade, emailToUsername(item.email)),
   );
   if (!contractors.length)
     return (
@@ -99,7 +100,11 @@ export function ContractorsView({
               )}
             </div>
             <div className="contractor-contact">
-              <span>{contractor.email || "Sin correo electrónico"}</span>
+              <span>
+                {contractor.email
+                  ? `Usuario: ${emailToUsername(contractor.email)}`
+                  : "Sin usuario"}
+              </span>
               <span>{contractor.phone || "Sin teléfono"}</span>
             </div>
             <div className="contractor-finances">
@@ -128,7 +133,7 @@ export function ContractorsView({
                   disabled={!contractor.email}
                   onClick={() => invite(contractor.id)}
                 >
-                  {contractor.user_id ? "Reenviar acceso" : "Invitar al portal"}
+                  {contractor.user_id ? "Cambiar código" : "Crear acceso"}
                   <Icon name="arrow" size={15} />
                 </button>
               )}
