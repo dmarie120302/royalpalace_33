@@ -69,16 +69,8 @@ interface ArchiveTarget {
 
 export function AppWorkspace({ initialData }: { initialData: Workspace }) {
   const controller = useWorkspace(initialData);
-  const {
-    data,
-    notice,
-    refreshing,
-    refresh,
-    save,
-    archive,
-    notify,
-    dismissNotice,
-  } = controller;
+  const { data, notice, refresh, save, archive, notify, dismissNotice } =
+    controller;
   const [projectId, setProjectId] = useState<string | null>(() => {
     const open = initialData.projects.filter((item) => !item.archived_at);
     return open.length === 1 ? open[0].id : null;
@@ -264,33 +256,7 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
                   ))}
                 </select>
               </>
-            ) : (
-              canCreate && (
-                <button
-                  className="header-button"
-                  onClick={() => selectProject(null)}
-                >
-                  Obras
-                </button>
-              )
-            )}
-            <button
-              className={`header-button${refreshing ? " refreshing" : ""}`}
-              disabled={refreshing}
-              aria-label="Actualizar información"
-              onClick={() =>
-                refresh().catch((cause) =>
-                  notify(
-                    cause instanceof Error
-                      ? cause.message
-                      : "No se pudo actualizar la información.",
-                    true,
-                  ),
-                )
-              }
-            >
-              <Icon name="refresh" size={17} />
-            </button>
+            ) : null}
             <form action="/auth/signout" method="post">
               <button className="header-button" type="submit">
                 Salir

@@ -314,8 +314,7 @@ export function RoyalForm(props: RoyalFormProps) {
   const titulo = (() => {
     const pre = id ? "Editar" : "Nuevo";
     const preF = id ? "Editar" : "Nueva";
-    if (resource === "spaces")
-      return `${preF === "Nueva" ? "Nuevo" : "Editar"} espacio`;
+    if (resource === "spaces") return `${preF} espacio`;
     if (resource === "phases") return `${preF} fase`;
     if (resource === "categories") return `${preF} categoría`;
     if (resource === "contractors") return `${pre} contratista`;
@@ -707,13 +706,13 @@ export function RoyalForm(props: RoyalFormProps) {
             </select>
           </Campo>
         )}
-        {!id && (
+        {
           <Fotos
             files={files}
             onChange={setFiles}
             label="Comprobantes (puedes elegir varias fotos)"
           />
-        )}
+        }
       </>,
     );
   }
@@ -861,13 +860,13 @@ export function RoyalForm(props: RoyalFormProps) {
           </select>
         </Campo>
       )}
-      {!id && (
+      {
         <Fotos
           files={files}
           onChange={setFiles}
           label="Fotos del recibo o producto (puedes elegir varias)"
         />
-      )}
+      }
     </>,
   );
 }

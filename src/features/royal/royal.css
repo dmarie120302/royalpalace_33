@@ -144,9 +144,6 @@
 .royal .modal-r{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:12px;z-index:30}
 .royal .modal-r>div{background:#fff;border-radius:12px;padding:18px;max-width:480px;width:100%;max-height:90vh;overflow:auto}
 .royal .estado{font-size:.9rem}
-.royal .cr-sec.tit{color:#fff}
-.royal .cr-sec .tit-ico{background:rgba(255,255,255,.2)!important}
-.royal .cr-sec .tit-ico svg{stroke:#fff}
 @media print{.royal .no-imprimir{display:none!important}}
 .royal .lbl{font-size:.85rem;color:var(--mut);display:block;margin-top:8px}
 .royal .modal-r>dialog{position:static;margin:0;border:0;background:#fff;border-radius:12px;padding:18px;max-width:480px;width:100%;max-height:90vh;overflow:auto;color:var(--txt)}

@@ -39,6 +39,9 @@ import {
 } from "./parts";
 
 export type RoyalProps = ViewProps & { r: Royal };
+// Contractor chips in lists show a color dot, as in the HTML.
+const sinLetra = (list: Contratista[]) =>
+  list.map((c) => ({ ...c, letra: undefined }));
 
 const record = <T extends { id: string }>(list: T[], id: string) => ({
   ...list.find((x) => x.id === id),
@@ -78,7 +81,7 @@ function DetallePagos({
                 <td>{x.concepto}</td>
                 <td className="num">{fmt(x.monto)}</td>
                 <td>
-                  {x.comprobantes || admin ? (
+                  {x.comprobantes ? (
                     <button
                       className="sec mini"
                       aria-label={`Comprobantes del pago ${x.concepto}`}
@@ -90,7 +93,7 @@ function DetallePagos({
                         )
                       }
                     >
-                      {x.comprobantes ? `📎 ${x.comprobantes}` : "+ Adjuntar"}
+                      📎 {x.comprobantes}
                     </button>
                   ) : (
                     <span className="meta">—</span>
@@ -98,18 +101,6 @@ function DetallePagos({
                 </td>
                 {admin && (
                   <td style={{ whiteSpace: "nowrap" }}>
-                    <button
-                      className="sec mini"
-                      aria-label={`Editar pago ${x.concepto}`}
-                      onClick={() =>
-                        props.edit(
-                          "payments",
-                          record(props.data.payments, x.id),
-                        )
-                      }
-                    >
-                      ✎
-                    </button>{" "}
                     <button
                       className="peligro mini"
                       aria-label={`Archivar pago ${x.concepto}`}
@@ -172,7 +163,10 @@ export function Trabajos(props: RoyalProps) {
                     <>
                       {f && <Chip it={f} />}
                       <Chips list={r.espacios} ids={p.espacioIds} />
-                      <Chips list={r.contratistas} ids={p.contratistaIds} />
+                      <Chips
+                        list={sinLetra(r.contratistas)}
+                        ids={p.contratistaIds}
+                      />
                     </>
                   ) : (
                     <span className="meta">
@@ -193,7 +187,6 @@ export function Trabajos(props: RoyalProps) {
                 {p.fechaInicio
                   ? `📅 ${fechaCorta(aDia(p.fechaInicio))}${p.fechaFin ? " – " + fechaCorta(aDia(p.fechaFin)) : ""}`
                   : "Sin fechas"}
-                {" · "}Avance físico {p.avance}%
               </span>
               <span
                 className="estado"
@@ -333,7 +326,7 @@ export function Espacios(props: RoyalProps) {
 }
 
 export function Contratistas(props: RoyalProps) {
-  const { r, admin } = props;
+  const { r } = props;
   if (!r.contratistas.length)
     return (
       <p className="meta">
@@ -387,20 +380,9 @@ export function Contratistas(props: RoyalProps) {
             </div>
             <div className="meta">
               Usuario: <b>{c.usuario || "—"}</b>
-              {" · "}
-              {c.vinculado ? "con código de acceso" : "sin código de acceso"}
+              {" · "}Código de acceso:{" "}
+              <b>{c.vinculado ? "••••••" : "sin asignar"}</b>
             </div>
-            {admin && (
-              <div style={{ marginTop: 6 }}>
-                <button
-                  className="sec mini"
-                  disabled={!c.usuario}
-                  onClick={() => props.invite(c.id)}
-                >
-                  {c.vinculado ? "Cambiar código" : "Crear acceso"}
-                </button>
-              </div>
-            )}
             <div className="meta" style={{ marginTop: 6 }}>
               {ts.length} trabajo(s) · {ms.length} material(es) vinculados
             </div>
@@ -978,7 +960,10 @@ function TablaTrabajos({ r, T }: { r: Royal; T: Partida[] }) {
               </td>
               <td>
                 {p.contratistaIds.length ? (
-                  <Chips list={r.contratistas} ids={p.contratistaIds} />
+                  <Chips
+                    list={sinLetra(r.contratistas)}
+                    ids={p.contratistaIds}
+                  />
                 ) : (
                   "—"
                 )}
@@ -1039,7 +1024,10 @@ function TablaMateriales({
                 {conContratistas && (
                   <td>
                     {m.contratistaIds.length ? (
-                      <Chips list={r.contratistas} ids={m.contratistaIds} />
+                      <Chips
+                        list={sinLetra(r.contratistas)}
+                        ids={m.contratistaIds}
+                      />
                     ) : (
                       "—"
                     )}
@@ -1347,7 +1335,10 @@ export function Materiales(props: RoyalProps) {
                         {c && <Chip it={c} />}
                         {f && <Chip it={f} />}
                         <Chips list={r.espacios} ids={m.espacioIds} />
-                        <Chips list={r.contratistas} ids={m.contratistaIds} />
+                        <Chips
+                          list={sinLetra(r.contratistas)}
+                          ids={m.contratistaIds}
+                        />
                         {t && <span className="meta">{t.nombre}</span>}
                       </>
                     ) : (
@@ -1359,7 +1350,7 @@ export function Materiales(props: RoyalProps) {
                 </td>
                 <td className="num">{fmt(m.monto)}</td>
                 <td>
-                  {m.fotos || admin ? (
+                  {m.fotos ? (
                     <button
                       className="sec mini"
                       aria-label={`Comprobantes de ${m.descripcion}`}
@@ -1371,7 +1362,7 @@ export function Materiales(props: RoyalProps) {
                         )
                       }
                     >
-                      {m.fotos ? `📎 ${m.fotos}` : "+ Adjuntar"}
+                      📎 {m.fotos}
                     </button>
                   ) : (
                     <span className="meta">—</span>
@@ -1745,7 +1736,7 @@ function VerTrabajo({
         </span>
         <div style={{ margin: "10px 0" }}>
           <Chips list={r.espacios} ids={p.espacioIds} />
-          <Chips list={r.contratistas} ids={p.contratistaIds} />
+          <Chips list={sinLetra(r.contratistas)} ids={p.contratistaIds} />
         </div>
         <Barra valor={pag} total={pres} />
         <div className="meta">
