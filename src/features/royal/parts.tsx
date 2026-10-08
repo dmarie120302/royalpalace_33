@@ -2,7 +2,7 @@
 import type { ReactNode } from "react";
 import { fmt, pct, type Item } from "./model";
 
-const ICONOS: Record<string, string> = {
+export const ICONOS: Record<string, string> = {
   casa: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>',
   comedor:
     '<path d="M7 3v7a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V3"/><path d="M8 12v9"/><path d="M17 3c-1.5 1.5-1.5 5 0 7v11"/>',
@@ -37,10 +37,39 @@ const ICONOS: Record<string, string> = {
   agua: '<path d="M12 3s-6 7-6 11a6 6 0 0 0 12 0c0-4-6-11-6-11z"/>',
   herramienta:
     '<path d="M14 6a4 4 0 0 0 4 4l-8 8a2 2 0 0 1-3-3l8-8a4 4 0 0 0-1-1z"/>',
+  pintar:
+    '<path d="M4 4h12v5H4z"/><path d="M16 6h3v4h-7v3"/><path d="M12 12v8"/>',
   mueble:
     '<path d="M4 10h16v4H4z"/><path d="M6 14v6M18 14v6"/><path d="M4 10V6h16v4"/>',
   puerta:
     '<path d="M6 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17"/><path d="M3 21h18"/><path d="M14 12h.01"/>',
+};
+export const NOMBRES: Record<string, string> = {
+  casa: "Casa",
+  comedor: "Comedor",
+  dormitorio: "Dormitorio",
+  sala: "Sala",
+  cocina: "Cocina",
+  bano: "Baño",
+  terraza: "Terraza / exterior",
+  garaje: "Garaje",
+  oficina: "Oficina",
+  lavanderia: "Lavandería",
+  jardin: "Jardín",
+  pasillo: "Pasillo",
+  techo: "Techo",
+  obra: "Obra gruesa",
+  acabados: "Acabados",
+  instalacion: "Instalaciones",
+  pintura: "Pintura",
+  limpieza: "Limpieza final",
+  luz: "Luces",
+  aire: "Aire acondicionado",
+  agua: "Agua / plomería",
+  herramienta: "Herramientas",
+  pintar: "Pintura",
+  mueble: "Muebles",
+  puerta: "Puertas y ventanas",
 };
 const ICONOS_TIT: Record<string, string> = {
   grafica: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',

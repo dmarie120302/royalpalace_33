@@ -104,12 +104,14 @@ export function buildRoyal(data: Workspace, project: Project): Royal {
   ) => list.filter((x) => x.project_id === project.id && !x.archived_at);
   const attachmentCount = (key: "payment_id" | "material_id", id: string) =>
     data.attachments.filter((a) => a[key] === id && !a.archived_at).length;
-  const catalog = (list: { id: string; name: string; color: string }[]) =>
+  const catalog = (
+    list: { id: string; name: string; color: string; icon?: string }[],
+  ) =>
     list.map((c) => ({
       id: c.id,
       nombre: c.name,
       color: c.color,
-      icono: iconFor(c.name),
+      icono: c.icon && c.icon !== "casa" ? c.icon : iconFor(c.name),
     }));
   const payments = mine(data.payments);
   return {

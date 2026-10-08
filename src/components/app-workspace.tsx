@@ -26,6 +26,7 @@ import {
   Trabajos,
   VistaContratista,
 } from "@/features/royal/views";
+import { RoyalForm, ROYAL_FORMS } from "@/features/royal/forms";
 import "@/features/royal/royal.css";
 import type { ViewProps } from "@/features/workspace/view-types";
 
@@ -519,16 +520,33 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
           </form>
         </Modal>
       )}
-      {editor && (
-        <EntityForm
-          key={`${editor.resource}-${editor.record?.id || "new"}`}
-          target={editor}
-          projectId={project?.id || null}
-          data={data}
-          onSave={save}
-          onClose={() => setEditor(null)}
-        />
+      {editor && project && royal && ROYAL_FORMS.includes(editor.resource) && (
+        <div className="royal">
+          <RoyalForm
+            key={`${editor.resource}-${editor.record?.id || "new"}`}
+            resource={editor.resource}
+            record={editor.record || {}}
+            data={data}
+            r={royal}
+            projectId={project.id}
+            onSave={save}
+            refresh={refresh}
+            notify={notify}
+            onClose={() => setEditor(null)}
+          />
+        </div>
       )}
+      {editor &&
+        !(project && royal && ROYAL_FORMS.includes(editor.resource)) && (
+          <EntityForm
+            key={`${editor.resource}-${editor.record?.id || "new"}`}
+            target={editor}
+            projectId={project?.id || null}
+            data={data}
+            onSave={save}
+            onClose={() => setEditor(null)}
+          />
+        )}
       {attachmentTarget && project && (
         <AttachmentsModal
           target={attachmentTarget}

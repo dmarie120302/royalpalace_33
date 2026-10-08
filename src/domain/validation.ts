@@ -18,7 +18,11 @@ const spaceIds = z
   .max(100)
   .refine((v) => new Set(v).size === v.length, "Hay espacios repetidos.")
   .default([]);
-const catalog = { ...scoped, name, color };
+const icon = z
+  .string()
+  .regex(/^[a-z]{2,20}$/)
+  .default("casa");
+const catalog = { ...scoped, name, color, icon };
 const datesValid = (v: {
   start_date: string | null;
   end_date: string | null;

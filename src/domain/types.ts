@@ -29,6 +29,7 @@ export interface Catalog extends Entity {
   project_id: string;
   name: string;
   color: string;
+  icon?: string;
 }
 export interface Phase extends Catalog {
   space_ids: string[];
