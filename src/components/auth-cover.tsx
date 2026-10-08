@@ -1,6 +1,6 @@
 import Image from "next/image";
 export function AuthCover() {
-  const name = process.env.NEXT_PUBLIC_APP_NAME || "Obra Clara";
+  const name = process.env.NEXT_PUBLIC_APP_NAME || "RoyalPalace33";
   return (
     <>
       <Image

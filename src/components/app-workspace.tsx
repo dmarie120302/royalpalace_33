@@ -104,7 +104,7 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
       timeZone: "America/Panama",
     }).format(new Date()),
   );
-  const name = process.env.NEXT_PUBLIC_APP_NAME || "Obra Clara";
+  const name = process.env.NEXT_PUBLIC_APP_NAME || "RoyalPalace33";
   const project = data.projects.find(
     (item) => item.id === projectId && !item.archived_at,
   );
