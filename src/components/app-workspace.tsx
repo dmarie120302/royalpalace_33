@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Resource, Workspace } from "@/domain/types";
-import { Icon, type IconName } from "./icons";
-import { money, projectSummary } from "@/domain/finance";
+import { Icon } from "./icons";
 import { isValidPin } from "@/domain/access";
 import { ErrorBox, Modal } from "./ui";
 import { api, useWorkspace } from "@/features/workspace/use-workspace";
@@ -15,56 +14,50 @@ import {
   AttachmentsModal,
   type AttachmentTarget,
 } from "@/features/workspace/attachments-modal";
+import { ProjectsView } from "@/features/workspace/projects-view";
+import { buildRoyal, fmt, pct, totalPagado } from "@/features/royal/model";
 import {
-  ProjectsView,
-  ProjectOverview,
-} from "@/features/workspace/projects-view";
-import { WorksView } from "@/features/workspace/works-view";
-import {
-  PaymentsView,
-  MaterialsView,
-} from "@/features/workspace/movements-view";
-import {
-  CatalogsView,
-  ContractorsView,
-} from "@/features/workspace/catalogs-view";
-import { TimelineView } from "@/features/workspace/timeline-view";
-import { ReportsView } from "@/features/workspace/reports-view";
+  Analisis,
+  Contratistas,
+  Cronograma,
+  Espacios,
+  Fases,
+  Materiales,
+  Trabajos,
+  VistaContratista,
+} from "@/features/royal/views";
+import "@/features/royal/royal.css";
 import type { ViewProps } from "@/features/workspace/view-types";
 
 type View =
-  | "overview"
-  | "works"
-  | "payments"
-  | "materials"
-  | "calendar"
-  | "team"
-  | "catalog"
-  | "report";
-const navigation: {
-  id: View;
-  label: string;
-  icon: IconName;
-  adminOnly?: boolean;
-}[] = [
-  { id: "overview", label: "Resumen", icon: "overview" },
-  { id: "works", label: "Trabajos", icon: "works" },
-  { id: "payments", label: "Pagos", icon: "payments" },
-  { id: "materials", label: "Materiales", icon: "materials" },
-  { id: "calendar", label: "Cronograma", icon: "calendar" },
-  { id: "team", label: "Contratistas", icon: "team", adminOnly: true },
-  { id: "catalog", label: "Organización", icon: "catalog", adminOnly: true },
-  { id: "report", label: "Reportes", icon: "report" },
+  | "trabajos"
+  | "fases"
+  | "analisis"
+  | "cronograma"
+  | "materiales"
+  | "espacios"
+  | "contratistas";
+// Same tabs, order and buttons as ph33-royal-palace-v14.html.
+const navigation: { id: View; label: string }[] = [
+  { id: "trabajos", label: "Trabajos" },
+  { id: "fases", label: "Fases" },
+  { id: "analisis", label: "Análisis" },
+  { id: "cronograma", label: "Cronograma" },
+  { id: "materiales", label: "Materiales" },
+  { id: "espacios", label: "Espacios" },
+  { id: "contratistas", label: "Contratistas" },
 ];
-const descriptions: Record<View, string> = {
-  overview: "El avance y los números de esta obra, en un mismo lugar.",
-  works: "Responsables, presupuestos y entregas de cada trabajo.",
-  payments: "Pagos registrados a cada beneficiario y sus comprobantes.",
-  materials: "Compras relacionadas con trabajos, espacios y pagos.",
-  calendar: "Lo que está en marcha y lo que viene después.",
-  team: "Las personas que hacen posible esta obra.",
-  catalog: "Espacios, fases y categorías para organizar la obra.",
-  report: "Resultados e historial para revisar y compartir.",
+const newButtons: Record<View, { label: string; resource: Resource }[]> = {
+  trabajos: [{ label: "+ Nuevo trabajo", resource: "work_items" }],
+  fases: [{ label: "+ Nueva fase", resource: "phases" }],
+  analisis: [],
+  cronograma: [],
+  materiales: [
+    { label: "+ Nuevo material", resource: "material_purchases" },
+    { label: "+ Nueva categoría", resource: "categories" },
+  ],
+  espacios: [{ label: "+ Nuevo espacio", resource: "spaces" }],
+  contratistas: [{ label: "+ Nuevo contratista", resource: "contractors" }],
 };
 interface ArchiveTarget {
   resource: Resource;
@@ -85,8 +78,11 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
     notify,
     dismissNotice,
   } = controller;
-  const [projectId, setProjectId] = useState<string | null>(null);
-  const [view, setView] = useState<View>("overview");
+  const [projectId, setProjectId] = useState<string | null>(() => {
+    const open = initialData.projects.filter((item) => !item.archived_at);
+    return open.length === 1 ? open[0].id : null;
+  });
+  const [view, setView] = useState<View>("trabajos");
   const [query, setQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [editor, setEditor] = useState<EditorTarget | null>(null);
@@ -104,13 +100,7 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
     linked: boolean;
   } | null>(null);
   const [accessError, setAccessError] = useState("");
-  const [currentDate] = useState(() =>
-    new Intl.DateTimeFormat("es-PA", {
-      day: "numeric",
-      month: "long",
-      timeZone: "America/Panama",
-    }).format(new Date()),
-  );
+
   const name = process.env.NEXT_PUBLIC_APP_NAME || "RoyalPalace33";
   const project = data.projects.find(
     (item) => item.id === projectId && !item.archived_at,
@@ -125,7 +115,7 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
   }, [notice, dismissNotice]);
   const selectProject = (id: string | null) => {
     setProjectId(id);
-    setView("overview");
+    setView("trabajos");
     setQuery("");
     setShowArchived(false);
   };
@@ -223,7 +213,7 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
         data,
         project,
         admin,
-        query,
+        query: "",
         edit: (resource, record) => setEditor({ resource, record }),
         archive: askArchive,
         attachments: (type, id, title) =>
@@ -231,55 +221,58 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
         invite,
       }
     : null;
-  const currentModule = navigation.find((item) => item.id === view)!;
-  const primary: { label: string; resource: Resource } | null = !project
-    ? canCreate
-      ? { label: "Nueva obra", resource: "projects" }
-      : null
-    : !admin
-      ? null
-      : view === "works"
-        ? { label: "Nuevo trabajo", resource: "work_items" }
-        : view === "payments"
-          ? { label: "Registrar pago", resource: "payments" }
-          : view === "materials"
-            ? { label: "Nueva compra", resource: "material_purchases" }
-            : view === "team"
-              ? { label: "Nuevo contratista", resource: "contractors" }
-              : null;
-  const summary = project ? projectSummary(data, project.id) : null;
-  const headerBudget = project
-    ? admin
-      ? project.budget_cents
-      : (summary?.committed ?? 0)
+  const royal = project ? buildRoyal(data, project) : null;
+  const me =
+    royal && !admin
+      ? royal.contratistas.find((c) => c.userId === data.user.id)
+      : undefined;
+  const pres = royal
+    ? royal.partidas.reduce((a, p) => a + (+p.presupuesto || 0), 0)
     : 0;
-  const paidShare =
-    summary && headerBudget > 0
-      ? Math.min(100, (summary.paid / headerBudget) * 100)
-      : 0;
+  const pag = royal
+    ? royal.partidas.reduce((a, p) => a + totalPagado(p), 0)
+    : 0;
+  const royalProps = props && royal ? { ...props, r: royal } : null;
   return (
     <div className="app-shell">
       <header className="app-header no-print">
         <div className="fila">
-          <p className="app-title">{project ? project.name : name}</p>
+          <p className="app-title">
+            {project ? (me ? `Hola, ${me.nombre}` : project.name) : name}
+          </p>
           <div className="header-actions">
-            <label className="sr-only" htmlFor="project-switcher">
-              Obra actual
-            </label>
-            <select
-              id="project-switcher"
-              value={project?.id || ""}
-              onChange={(event) => selectProject(event.target.value || null)}
-            >
-              <option value="">
-                Todas las obras ({activeProjects.length})
-              </option>
-              {activeProjects.map((item) => (
-                <option value={item.id} key={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
+            {activeProjects.length > 1 || !project ? (
+              <>
+                <label className="sr-only" htmlFor="project-switcher">
+                  Obra actual
+                </label>
+                <select
+                  id="project-switcher"
+                  value={project?.id || ""}
+                  onChange={(event) =>
+                    selectProject(event.target.value || null)
+                  }
+                >
+                  <option value="">
+                    Todas las obras ({activeProjects.length})
+                  </option>
+                  {activeProjects.map((item) => (
+                    <option value={item.id} key={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : (
+              canCreate && (
+                <button
+                  className="header-button"
+                  onClick={() => selectProject(null)}
+                >
+                  Obras
+                </button>
+              )
+            )}
             <button
               className={`header-button${refreshing ? " refreshing" : ""}`}
               disabled={refreshing}
@@ -304,147 +297,115 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
             </form>
           </div>
         </div>
-        {project && summary ? (
+        {project && admin && (
           <>
             <div className="resumen">
               <div>
-                Presupuesto total<b>{money(headerBudget)}</b>
+                Presupuesto total<b>{fmt(pres)}</b>
               </div>
               <div>
-                Pagado<b>{money(summary.paid)}</b>
+                Pagado<b>{fmt(pag)}</b>
               </div>
               <div>
-                Pendiente<b>{money(summary.pending)}</b>
+                Pendiente<b>{fmt(pres - pag)}</b>
               </div>
             </div>
             <div className="barra" aria-hidden="true">
-              <span style={{ width: `${paidShare}%` }} />
+              <span style={{ width: `${pct(pag, pres)}%` }} />
             </div>
           </>
-        ) : (
-          <div className="resumen">
-            <div>
-              {data.user.name || data.user.email}
-              <b>
-                {currentDate} · {activeProjects.length}{" "}
-                {activeProjects.length === 1 ? "obra activa" : "obras activas"}
-              </b>
-            </div>
-          </div>
         )}
       </header>
-      {project && (
+      {project && admin && (
         <nav className="menu no-print" aria-label="Secciones de la obra">
           <div className="menu-in">
             <div className="tabs">
-              {navigation
-                .filter((item) => !item.adminOnly || admin)
-                .map((item) => (
-                  <button
-                    className={`tab${view === item.id ? " act" : ""}`}
-                    key={item.id}
-                    onClick={() => selectView(item.id)}
-                    aria-current={view === item.id ? "page" : undefined}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+              {navigation.map((item) => (
+                <button
+                  className={`tab${view === item.id ? " act" : ""}`}
+                  key={item.id}
+                  onClick={() => selectView(item.id)}
+                  aria-current={view === item.id ? "page" : undefined}
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
             <div className="acciones">
-              <span className="role-label">
-                {admin ? "Administración" : "Contratista"}
-              </span>
-            </div>
-          </div>
-        </nav>
-      )}
-      <main className="workspace-main">
-        <div className="workspace-content">
-          <div
-            className={`page-heading${!project ? " portfolio-heading" : ""}`}
-          >
-            <div>
-              <h1>
-                {project ? currentModule.label : "Cada obra, en su lugar."}
-              </h1>
-              <p>
-                {project
-                  ? descriptions[view]
-                  : "Organiza los trabajos, cuida el presupuesto y mantén a tu equipo al día."}
-              </p>
-            </div>
-            <div className="page-actions">
-              {project && admin && view === "overview" && (
+              {newButtons[view].map((item) => (
                 <button
-                  className="button secondary"
+                  className="nuevo"
+                  key={item.resource}
+                  onClick={() => setEditor({ resource: item.resource })}
+                >
+                  {item.label}
+                </button>
+              ))}
+              {view === "trabajos" && (
+                <button
+                  className="nuevo sec"
                   aria-label={`Editar ${project.name}`}
                   onClick={() =>
                     setEditor({ resource: "projects", record: { ...project } })
                   }
                 >
-                  <Icon name="edit" size={17} />
                   Editar obra
-                </button>
-              )}
-              {primary && (
-                <button
-                  className="button"
-                  onClick={() => setEditor({ resource: primary.resource })}
-                >
-                  <Icon name="plus" size={18} />
-                  {primary.label}
                 </button>
               )}
             </div>
           </div>
-          {(!project ||
-            [
-              "works",
-              "payments",
-              "materials",
-              "team",
-              "catalog",
-              "calendar",
-            ].includes(view)) && (
+        </nav>
+      )}
+      <main className="workspace-main">
+        {!project ? (
+          <div className="workspace-content">
+            <div className="page-heading portfolio-heading">
+              <div>
+                <h1>Cada obra, en su lugar.</h1>
+                <p>
+                  Organiza los trabajos, cuida el presupuesto y mantén a tu
+                  equipo al día.
+                </p>
+              </div>
+              <div className="page-actions">
+                {canCreate && (
+                  <button
+                    className="button"
+                    onClick={() => setEditor({ resource: "projects" })}
+                  >
+                    <Icon name="plus" size={18} />
+                    Nueva obra
+                  </button>
+                )}
+              </div>
+            </div>
             <div className="filter-bar no-print">
               <label className="search-field">
                 <Icon name="search" size={18} />
                 <input
                   type="search"
-                  aria-label={
-                    project
-                      ? `Buscar en ${currentModule.label.toLowerCase()}`
-                      : "Buscar obras"
-                  }
-                  placeholder={
-                    project
-                      ? `Buscar en ${currentModule.label.toLowerCase()}…`
-                      : "Buscar obra o ubicación…"
-                  }
+                  aria-label="Buscar obras"
+                  placeholder="Buscar obra o ubicación…"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                 />
               </label>
-              {!project && (
-                <div className="portfolio-filters">
-                  <span>
-                    {activeProjects.length}{" "}
-                    {activeProjects.length === 1
-                      ? "obra activa"
-                      : "obras activas"}
-                  </span>
-                  <button
-                    className="text-button"
-                    onClick={() => setShowArchived(!showArchived)}
-                  >
-                    <Icon name="archive" size={16} />
-                    {showArchived ? "Ver activas" : "Ver archivadas"}
-                  </button>
-                </div>
-              )}
+              <div className="portfolio-filters">
+                <span>
+                  {activeProjects.length}{" "}
+                  {activeProjects.length === 1
+                    ? "obra activa"
+                    : "obras activas"}
+                </span>
+                <button
+                  className="text-button"
+                  onClick={() => setShowArchived(!showArchived)}
+                >
+                  <Icon name="archive" size={16} />
+                  {showArchived ? "Ver activas" : "Ver archivadas"}
+                </button>
+              </div>
             </div>
-          )}
-          {!project ? (
             <ProjectsView
               canCreate={canCreate}
               data={data}
@@ -456,33 +417,37 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
                 askArchive("projects", item.id, item.name, !item.archived_at)
               }
             />
-          ) : (
-            props &&
-            (view === "overview" ? (
-              <ProjectOverview {...props} />
-            ) : view === "works" ? (
-              <WorksView {...props} />
-            ) : view === "payments" ? (
-              <PaymentsView {...props} />
-            ) : view === "materials" ? (
-              <MaterialsView {...props} />
-            ) : view === "calendar" ? (
-              <TimelineView {...props} />
-            ) : view === "team" && admin ? (
-              <ContractorsView {...props} />
-            ) : view === "catalog" && admin ? (
-              <CatalogsView {...props} />
-            ) : (
-              <ReportsView {...props} />
-            ))
-          )}
-          <footer className="content-footer no-print">
-            <span>{name}</span>
-            <span>
-              {project ? project.name : "Un espacio para cada proyecto"}
-            </span>
-          </footer>
-        </div>
+          </div>
+        ) : (
+          royalProps && (
+            <div className="royal" id="lista">
+              {!admin ? (
+                me ? (
+                  <VistaContratista {...royalProps} c={me} />
+                ) : (
+                  <p className="meta">
+                    Tu cuenta todavía no está vinculada a un contratista de esta
+                    obra.
+                  </p>
+                )
+              ) : view === "trabajos" ? (
+                <Trabajos {...royalProps} />
+              ) : view === "fases" ? (
+                <Fases {...royalProps} />
+              ) : view === "analisis" ? (
+                <Analisis {...royalProps} />
+              ) : view === "cronograma" ? (
+                <Cronograma {...royalProps} />
+              ) : view === "materiales" ? (
+                <Materiales {...royalProps} />
+              ) : view === "espacios" ? (
+                <Espacios {...royalProps} />
+              ) : (
+                <Contratistas {...royalProps} />
+              )}
+            </div>
+          )
+        )}
       </main>
       {notice && (
         <output

@@ -11,7 +11,7 @@ export async function login(page: Page, email: string, password: string) {
   await page.getByLabel("Código", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Cada obra, en su lugar.", exact: true }),
+    page.getByRole("button", { name: "Salir", exact: true }),
   ).toBeVisible();
 }
 
