@@ -1879,7 +1879,7 @@ input[type="checkbox"] {
   margin-bottom: 10px;
   letter-spacing: -0.8px;
 }
-.auth-card > p {
+.auth-page .auth-card > p {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.7;
@@ -2734,3 +2734,260 @@ input[type="checkbox"] {
     transition: none !important;
   }
 }
+
+/* ===== Tema PH 33 Royal Palace (v14): estética del HTML original ===== */
+:root {
+  --paper: #fff;
+  --canvas: #f4f6f5;
+  --ink: #1d2b27;
+  --muted: #6b7a75;
+  --line: #dde3e0;
+  --purple: #4a4fc4;
+  --purple-light: #eceef8;
+  --danger: #b5472b;
+  --radius: 12px;
+}
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+  background: var(--canvas);
+  color: var(--ink);
+  -webkit-text-size-adjust: 100%;
+}
+h1, h2, h3 { letter-spacing: 0; }
+
+/* Portada */
+.auth-page {
+  min-height: 100dvh;
+  background: var(--purple);
+  padding: 14px;
+  color: var(--ink);
+}
+.auth-page > output { color: #fff; }
+.auth-page .auth-card,
+.auth-card {
+  background: #fff;
+  border: 0;
+  border-radius: 14px;
+  padding: 22px;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+  box-shadow: none;
+}
+.auth-cover {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  border-radius: 10px;
+  margin: 0 auto 12px;
+}
+.auth-brand {
+  display: block;
+  margin: 0 0 4px;
+  color: var(--purple);
+  font-size: 1.5em;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.auth-brand::before, .auth-brand::after { display: none; }
+.auth-page .auth-card h1 {
+  font-size: .95rem;
+  font-weight: 400;
+  color: var(--muted);
+  margin: 0 0 2px;
+  letter-spacing: 0;
+}
+.auth-page .auth-card > p {
+  color: var(--muted);
+  font-size: .85rem;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+.auth-page .auth-card form { gap: 0; display: flex; flex-direction: column; text-align: left; }
+.auth-page .auth-card label {
+  font-size: .85rem;
+  color: var(--muted);
+  display: block;
+  margin-top: 8px;
+  text-align: center;
+}
+.auth-page .auth-card input {
+  width: 100%;
+  padding: 8px;
+  margin-top: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  text-align: center;
+  font-size: 1.05rem;
+}
+.auth-card input:focus { outline: 2px solid #e0a100; outline-offset: 0; border-color: #e0a100; }
+.auth-page .auth-card .button { min-height: 0; height: auto; width: 100%; margin-top: 10px; justify-content: center; }
+.auth-card .button.quiet { background: none; color: var(--purple); margin-top: 6px; }
+.auth-card .form-error { color: var(--danger); font-size: .9rem; margin: 8px 0 0; background: none; border: 0; padding: 0; text-align: center; }
+.auth-note { color: var(--muted); font-size: .75rem; margin-top: 12px; }
+.auth-card ol { text-align: left; font-size: .9rem; }
+
+/* Cabecera y menú */
+.app-shell { display: block; min-height: 100vh; }
+.app-header { background: var(--purple); color: #fff; padding: 16px 18px; }
+.app-header .fila, .fila {
+  display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center;
+}
+.app-title { margin: 0; font-size: clamp(1.05rem, 3.6vw, 1.3rem); font-weight: 700; }
+.header-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.header-actions form { margin: 0; }
+.header-actions select {
+  font: inherit; font-size: .88rem; padding: 6px 8px; border-radius: 8px; border: 0;
+  background: rgba(255,255,255,.95); color: var(--ink); max-width: 220px; min-width: 0;
+}
+.header-button {
+  font: inherit; border: 0; border-radius: 8px; padding: 7px 12px;
+  background: #e9efec; color: var(--ink); display: inline-flex; align-items: center; gap: 6px;
+}
+.header-button.refreshing svg { animation: girar 1s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
+.resumen { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: .9rem; }
+.resumen b { display: block; font-size: clamp(.95rem, 3vw, 1.15rem); }
+.barra { height: 12px; background: rgba(255,255,255,.25); border-radius: 8px; overflow: hidden; margin: 8px 0 0; }
+.barra > span { display: block; height: 100%; background: #fff; transition: width .4s; }
+.menu {
+  background: #fff; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.menu-in {
+  max-width: 1000px; margin: 0 auto; padding: 4px 14px;
+  display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.tabs { display: flex; gap: 2px; flex-wrap: nowrap; overflow-x: auto; max-width: 100%; scrollbar-width: thin; }
+.tab {
+  font: inherit; background: none; color: var(--muted); padding: 10px 12px; border: 0; border-radius: 0;
+  border-bottom: 3px solid transparent; white-space: nowrap; flex-shrink: 0;
+}
+.tab:hover { color: var(--ink); }
+.tab.act { color: var(--purple); border-bottom-color: var(--purple); font-weight: 600; }
+.acciones { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.role-label { color: var(--muted); font-size: .8rem; }
+.app-shell .workspace-main { margin: 0; width: auto; max-width: 1000px; margin: 0 auto; padding: 14px; }
+.app-shell .workspace-content { padding: 0; max-width: none; }
+
+/* Encabezado de sección */
+.page-heading { margin: 4px 0 14px; padding: 0; gap: 10px; align-items: center; }
+.page-heading h1 { font-size: 1.15rem; font-weight: 700; letter-spacing: 0; line-height: 1.3; }
+.page-heading p { color: var(--muted); font-size: .85rem; }
+
+/* Botones */
+.button, .button.primary {
+  font: inherit; border: 0; border-radius: 8px; padding: 8px 12px; min-height: 0; height: auto;
+  background: var(--purple); color: #fff; box-shadow: none; font-weight: 500; gap: 6px;
+}
+.button.secondary, .button.quiet { background: #e9efec; color: var(--ink); border: 0; }
+.button.danger-button { background: var(--danger); color: #fff; }
+.text-button { color: var(--purple); }
+.icon-button { border-radius: 8px; }
+
+/* Tarjetas */
+.panel, .project-card, .work-card, .catalog-card, .contractor-card, .material-card,
+.timeline-panel, .undated-panel, .report-panel, .execution-panel, .empty-state, .setup-card,
+.summary-strip > *, .filter-bar {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: none;
+}
+.panel, .work-card, .catalog-card, .contractor-card, .material-card, .report-panel { padding: 14px; }
+.project-card { padding: 14px; }
+.filter-bar { padding: 12px; margin-bottom: 14px; }
+.summary-strip { gap: 10px; }
+.summary-strip > * { padding: 12px; }
+
+/* Formularios */
+input, textarea, select {
+  font: inherit;
+}
+.form-field > span, .form-field label { font-size: .85rem; color: var(--muted); }
+.form-field input, .form-field select, .form-field textarea, .search-field {
+  border: 1px solid var(--line); border-radius: 8px; background: #fff;
+}
+.form-field input, .form-field select, .form-field textarea { padding: 8px; min-height: 0; }
+
+/* Tablas */
+.movements-table { font-size: .9rem; }
+.movements-table td, .movements-table th { padding: 7px 4px; border-bottom: 1px solid var(--line); }
+
+/* Modales */
+.modal { width: 480px; border-radius: 12px; box-shadow: none; }
+.modal::backdrop { background: rgba(0,0,0,.6); backdrop-filter: none; }
+.modal-heading { padding: 16px 18px 12px; }
+.modal-heading h2 { font-size: 1.05rem; }
+.entity-form { padding: 14px 18px 0; }
+
+/* Barras de progreso animadas */
+@keyframes crecer { from { width: 0; } }
+@keyframes rayas { from { background-position: 0 0; } to { background-position: 32px 0; } }
+.progreso {
+  position: relative; height: 24px; margin: 8px 0; border-radius: 14px; overflow: hidden;
+  background: #eceef8; box-shadow: inset 0 1px 2px rgba(0,0,0,.06);
+}
+.progreso .progress-track {
+  -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 24px;
+  border: 0; border-radius: 14px; background: transparent; overflow: hidden; margin: 0;
+}
+.progreso .progress-track::-webkit-progress-bar { background: transparent; border-radius: 14px; }
+.progreso .progress-track::-webkit-progress-value {
+  border-radius: 14px;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0 8px, transparent 8px 16px),
+    linear-gradient(90deg, var(--purple), #8a8fe6);
+  transition: width .6s;
+}
+.progreso .progress-track::-moz-progress-bar {
+  border-radius: 14px;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0 8px, transparent 8px 16px),
+    linear-gradient(90deg, var(--purple), #8a8fe6);
+}
+.progreso.verde .progress-track::-webkit-progress-value {
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0 8px, transparent 8px 16px),
+    linear-gradient(90deg, #2f855a, #6fc79a);
+}
+.progreso.verde .progress-track::-moz-progress-bar {
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0 8px, transparent 8px 16px),
+    linear-gradient(90deg, #2f855a, #6fc79a);
+}
+.progreso > b {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: .82rem; color: #1d2b27; text-shadow: 0 0 6px #fff; pointer-events: none;
+}
+.progress-line { font-size: .85rem; color: var(--muted); }
+
+/* Avisos */
+.toast { border-radius: 12px; }
+.content-footer { color: var(--muted); font-size: .8rem; }
+
+@media (max-width: 700px) {
+  .app-header { padding: 14px; }
+  .resumen { gap: 10px; }
+  .panel, .work-card, .catalog-card, .contractor-card, .material-card, .report-panel, .project-card { padding: 12px; }
+  .header-actions select { max-width: 160px; }
+  .modal { width: auto; }
+}
+@media (max-width: 420px) {
+  .tab { padding: 9px 9px; font-size: .9rem; }
+  .progreso > b { font-size: .75rem; }
+}
+@media (min-width: 1100px) {
+  .app-shell .workspace-main { padding: 20px; }
+}
+@media print {
+  .app-header, .menu { display: none !important; }
+}
+.auth-page .auth-card input { margin-bottom: 0; padding: 8px; }
+.auth-page .auth-card label { font-weight: 400; font-size: .85rem; color: var(--muted); }
+.auth-page .auth-card form > .button.primary { margin-top: 10px; }
+.auth-page .auth-card > p.auth-note { font-size: .75rem; margin: 12px 0 0; }
+@media (max-width: 700px) { .auth-page .auth-card input { font-size: 16px; } }

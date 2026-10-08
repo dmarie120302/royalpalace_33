@@ -102,18 +102,22 @@ export function Progress({
   const safe = Math.min(100, Math.max(0, value));
   return (
     <div className={`progress ${tone}`}>
-      <div className="progress-line">
-        {label && <span>{label}</span>}
-        <strong>{Math.round(safe)}%</strong>
+      {label && (
+        <div className="progress-line">
+          <span>{label}</span>
+        </div>
+      )}
+      <div className={`progreso${safe >= 100 ? " verde" : ""}`}>
+        <progress
+          className="progress-track"
+          aria-label={label || "Avance"}
+          max={100}
+          value={safe}
+        >
+          {safe}%
+        </progress>
+        <b aria-hidden="true">{Math.round(safe)}%</b>
       </div>
-      <progress
-        className="progress-track"
-        aria-label={label || "Avance"}
-        max={100}
-        value={safe}
-      >
-        {safe}%
-      </progress>
     </div>
   );
 }

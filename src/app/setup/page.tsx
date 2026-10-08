@@ -1,11 +1,10 @@
 import Link from "next/link";
+import { AuthCover } from "@/components/auth-cover";
 export default function Setup() {
   return (
     <main className="auth-page">
       <section className="auth-card">
-        <div className="auth-brand">
-          {process.env.NEXT_PUBLIC_APP_NAME || "Obra Clara"}
-        </div>
+        <AuthCover />
         <h1>Conecta tu proyecto</h1>
         <p>
           La aplicación está preparada para un proyecto independiente de

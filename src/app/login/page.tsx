@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { browserClient } from "@/infrastructure/supabase/browser";
 import { supabaseConfig } from "@/infrastructure/supabase/config";
+import { AuthCover } from "@/components/auth-cover";
 export default function Login() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -43,14 +44,12 @@ export default function Login() {
   return (
     <main className="auth-page">
       <section className="auth-card">
-        <div className="auth-brand">
-          {process.env.NEXT_PUBLIC_APP_NAME || "Obra Clara"}
-        </div>
-        <h1>{reset ? "Recupera tu acceso" : "Tu obra, en orden"}</h1>
+        <AuthCover />
+        <h1>{reset ? "Recupera tu acceso" : "Ingresa a tu cuenta"}</h1>
         <p>
           {reset
             ? "Te enviaremos un enlace para crear una nueva contraseña."
-            : "Entra para consultar tus obras, trabajos y pagos."}
+            : "Entra con tu correo y contraseña."}
         </p>
         {!supabaseConfig() ? (
           <>

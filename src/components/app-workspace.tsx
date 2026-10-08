@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Resource, Workspace } from "@/domain/types";
 import { Icon, type IconName } from "./icons";
+import { money, projectSummary } from "@/domain/finance";
 import { ErrorBox, Modal } from "./ui";
 import { api, useWorkspace } from "@/features/workspace/use-workspace";
 import {
@@ -214,98 +215,39 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
             : view === "team"
               ? { label: "Nuevo contratista", resource: "contractors" }
               : null;
+  const summary = project ? projectSummary(data, project.id) : null;
+  const headerBudget = project
+    ? admin
+      ? project.budget_cents
+      : (summary?.committed ?? 0)
+    : 0;
+  const paidShare =
+    summary && headerBudget > 0
+      ? Math.min(100, (summary.paid / headerBudget) * 100)
+      : 0;
   return (
     <div className="app-shell">
-      <aside className="sidebar no-print">
-        <button
-          className="brand"
-          onClick={() => selectProject(null)}
-          aria-label={`${name}, todas las obras`}
-        >
-          <span className="brand-symbol">
-            <span />
-            <span />
-            <span />
-          </span>
-          <span>{name}</span>
-        </button>
-        <button
-          className={`all-projects-button${!project ? " selected" : ""}`}
-          onClick={() => selectProject(null)}
-        >
-          <Icon name="overview" />
-          Todas las obras<span>{activeProjects.length}</span>
-        </button>
-        <div className="sidebar-project">
-          <label htmlFor="project-switcher">Obra actual</label>
-          <select
-            id="project-switcher"
-            value={project?.id || ""}
-            onChange={(event) => selectProject(event.target.value || null)}
-          >
-            <option value="">Selecciona una obra</option>
-            {activeProjects.map((item) => (
-              <option value={item.id} key={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        {project && (
-          <nav className="workspace-nav" aria-label="Secciones de la obra">
-            {navigation
-              .filter((item) => !item.adminOnly || admin)
-              .map((item) => (
-                <button
-                  className={view === item.id ? "selected" : ""}
-                  key={item.id}
-                  onClick={() => selectView(item.id)}
-                  aria-current={view === item.id ? "page" : undefined}
-                >
-                  <Icon name={item.icon} size={19} />
-                  <span>{item.label}</span>
-                </button>
+      <header className="app-header no-print">
+        <div className="fila">
+          <p className="app-title">{project ? project.name : name}</p>
+          <div className="header-actions">
+            <label className="sr-only" htmlFor="project-switcher">
+              Obra actual
+            </label>
+            <select
+              id="project-switcher"
+              value={project?.id || ""}
+              onChange={(event) => selectProject(event.target.value || null)}
+            >
+              <option value="">Todas las obras ({activeProjects.length})</option>
+              {activeProjects.map((item) => (
+                <option value={item.id} key={item.id}>
+                  {item.name}
+                </option>
               ))}
-          </nav>
-        )}
-        <div className="sidebar-footer">
-          <div className="user-block">
-            <span className="user-avatar">
-              {(data.user.name || data.user.email).charAt(0).toUpperCase()}
-            </span>
-            <div>
-              <strong>{data.user.name || "Mi cuenta"}</strong>
-              <span>
-                {project
-                  ? admin
-                    ? "Administración"
-                    : "Contratista"
-                  : "Gestión de obras"}
-              </span>
-            </div>
-          </div>
-          <form action="/auth/signout" method="post">
-            <button className="logout-link" type="submit">
-              <Icon name="logout" size={17} />
-              Cerrar sesión
-            </button>
-          </form>
-        </div>
-      </aside>
-      <main className="workspace-main">
-        <header className="topbar no-print">
-          <div className="breadcrumbs">
-            <button onClick={() => selectProject(null)}>Mis obras</button>
-            {project && (
-              <>
-                <span>/</span>
-                <strong>{project.name}</strong>
-              </>
-            )}
-          </div>
-          <div className="topbar-actions">
+            </select>
             <button
-              className={`icon-button${refreshing ? " refreshing" : ""}`}
+              className={`header-button${refreshing ? " refreshing" : ""}`}
               disabled={refreshing}
               aria-label="Actualizar información"
               onClick={() =>
@@ -319,11 +261,70 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
                 )
               }
             >
-              <Icon name="refresh" size={19} />
+              <Icon name="refresh" size={17} />
             </button>
-            <span className="topbar-date">{currentDate}</span>
+            <form action="/auth/signout" method="post">
+              <button className="header-button" type="submit">
+                Salir
+              </button>
+            </form>
           </div>
-        </header>
+        </div>
+        {project && summary ? (
+          <>
+            <div className="resumen">
+              <div>
+                Presupuesto total<b>{money(headerBudget)}</b>
+              </div>
+              <div>
+                Pagado<b>{money(summary.paid)}</b>
+              </div>
+              <div>
+                Pendiente<b>{money(summary.pending)}</b>
+              </div>
+            </div>
+            <div className="barra" aria-hidden="true">
+              <span style={{ width: `${paidShare}%` }} />
+            </div>
+          </>
+        ) : (
+          <div className="resumen">
+            <div>
+              {data.user.name || data.user.email}
+              <b>
+                {currentDate} · {activeProjects.length}{" "}
+                {activeProjects.length === 1 ? "obra activa" : "obras activas"}
+              </b>
+            </div>
+          </div>
+        )}
+      </header>
+      {project && (
+        <nav className="menu no-print" aria-label="Secciones de la obra">
+          <div className="menu-in">
+            <div className="tabs">
+              {navigation
+                .filter((item) => !item.adminOnly || admin)
+                .map((item) => (
+                  <button
+                    className={`tab${view === item.id ? " act" : ""}`}
+                    key={item.id}
+                    onClick={() => selectView(item.id)}
+                    aria-current={view === item.id ? "page" : undefined}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+            </div>
+            <div className="acciones">
+              <span className="role-label">
+                {admin ? "Administración" : "Contratista"}
+              </span>
+            </div>
+          </div>
+        </nav>
+      )}
+      <main className="workspace-main">
         <div className="workspace-content">
           <div
             className={`page-heading${!project ? " portfolio-heading" : ""}`}

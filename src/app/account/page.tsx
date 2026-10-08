@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { browserClient } from "@/infrastructure/supabase/browser";
+import { AuthCover } from "@/components/auth-cover";
 export default function Account() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -72,9 +73,7 @@ export default function Account() {
   return (
     <main className="auth-page">
       <section className="auth-card">
-        <div className="auth-brand">
-          {process.env.NEXT_PUBLIC_APP_NAME || "Obra Clara"}
-        </div>
+        <AuthCover />
         <h1>Configura tu contraseña</h1>
         <p>Utiliza al menos 12 caracteres para proteger tu cuenta.</p>
         <form onSubmit={submit}>
