@@ -111,6 +111,11 @@ export const schemas = {
       category_id: optionalId,
       covered_by_payment_id: optionalId,
       space_ids: spaceIds,
+      phase_ids: z
+        .array(id)
+        .max(50)
+        .refine((v) => new Set(v).size === v.length, "Hay fases repetidas.")
+        .optional(),
       amount_cents: positiveCents,
       date: z.iso.date(),
       store: z.string().trim().min(1).max(160),

@@ -33,7 +33,15 @@ export async function POST(request: Request) {
     dbError(contractor.error);
     if (!contractor.data?.email)
       throw new AppError("Registra primero el usuario del contratista.");
-    const admin = adminClient();
+    let admin: ReturnType<typeof adminClient>;
+    try {
+      admin = adminClient();
+    } catch {
+      throw new AppError(
+        "Falta configurar la clave secreta de Supabase (SUPABASE_SECRET_KEY) en Vercel. Sin ella no se pueden crear ni cambiar códigos de acceso.",
+        503,
+      );
+    }
     if (contractor.data.user_id) {
       const target = await admin.auth.admin.getUserById(
         contractor.data.user_id,

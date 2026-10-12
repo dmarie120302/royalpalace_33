@@ -75,6 +75,7 @@ export interface MaterialPurchase extends Entity {
   category_id: string | null;
   covered_by_payment_id: string | null;
   space_ids: string[];
+  phase_ids: string[];
   amount_cents: number;
   date: string;
   store: string;

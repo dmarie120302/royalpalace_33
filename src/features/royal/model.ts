@@ -22,12 +22,22 @@ export interface Contratista extends Item {
   vinculado: boolean;
   userId: string | null;
 }
+export interface Archivo {
+  id: string;
+  nombre: string;
+  tipo: string;
+  tamano: number;
+  fecha: string;
+  pagoId: string | null;
+  materialId: string | null;
+}
 export interface Pago {
   id: string;
   fecha: string;
   concepto: string;
   monto: number;
   comprobantes: number;
+  archivos: Archivo[];
 }
 export interface Partida {
   id: string;
@@ -55,6 +65,8 @@ export interface Material {
   contratistaIds: string[];
   incluidoEnPago: boolean;
   fotos: number;
+  archivos: Archivo[];
+  faseIds: string[];
 }
 export interface Royal {
   espacios: Item[];
@@ -63,6 +75,7 @@ export interface Royal {
   contratistas: Contratista[];
   partidas: Partida[];
   materiales: Material[];
+  archivos: Archivo[];
 }
 
 // The database has no icon column; pick the HTML icon from the name.
@@ -102,8 +115,19 @@ export function buildRoyal(data: Workspace, project: Project): Royal {
   const mine = <T extends { project_id: string; archived_at: string | null }>(
     list: T[],
   ) => list.filter((x) => x.project_id === project.id && !x.archived_at);
-  const attachmentCount = (key: "payment_id" | "material_id", id: string) =>
-    data.attachments.filter((a) => a[key] === id && !a.archived_at).length;
+  const archivos: Archivo[] = data.attachments
+    .filter((a) => a.project_id === project.id && !a.archived_at)
+    .map((a) => ({
+      id: a.id,
+      nombre: a.name,
+      tipo: a.mime_type,
+      tamano: a.size,
+      fecha: a.created_at.slice(0, 10),
+      pagoId: a.payment_id,
+      materialId: a.material_id,
+    }));
+  const archivosDe = (key: "pagoId" | "materialId", id: string) =>
+    archivos.filter((a) => a[key] === id);
   const catalog = (
     list: { id: string; name: string; color: string; icon?: string }[],
   ) =>
@@ -150,9 +174,11 @@ export function buildRoyal(data: Workspace, project: Project): Royal {
           fecha: p.date,
           concepto: p.description,
           monto: dollars(p.amount_cents),
-          comprobantes: attachmentCount("payment_id", p.id),
+          comprobantes: archivosDe("pagoId", p.id).length,
+          archivos: archivosDe("pagoId", p.id),
         })),
     })),
+    archivos,
     materiales: mine(data.materials).map((m) => ({
       id: m.id,
       fecha: m.date,
@@ -166,7 +192,13 @@ export function buildRoyal(data: Workspace, project: Project): Royal {
       espacioIds: m.space_ids,
       contratistaIds: m.contractor_id ? [m.contractor_id] : [],
       incluidoEnPago: !isAdditionalMaterial(data, m),
-      fotos: attachmentCount("material_id", m.id),
+      fotos: archivosDe("materialId", m.id).length,
+      archivos: archivosDe("materialId", m.id),
+      faseIds: m.phase_ids?.length
+        ? m.phase_ids
+        : m.phase_id
+          ? [m.phase_id]
+          : [],
     })),
   };
 }
@@ -190,6 +222,16 @@ export const DIA = 86400000;
 export const aDia = (s: string) => {
   const [y, m, d] = s.split("-").map(Number);
   return Math.round(Date.UTC(y, m - 1, d) / DIA);
+};
+export const esFinDeSemana = (d: number) => {
+  const dow = new Date(d * DIA).getUTCDay();
+  return dow === 0 || dow === 6;
+};
+/** Working days (Monday to Friday) between two dates, inclusive. */
+export const diasHabiles = (ini: number, fin: number) => {
+  let n = 0;
+  for (let d = ini; d <= fin; d++) if (!esFinDeSemana(d)) n++;
+  return n;
 };
 /** Today in Panamá, as whole days since epoch. */
 export const hoyDia = () => aDia(today());
@@ -292,7 +334,7 @@ export function csvMovimientos(r: Royal, T: Partida[], M: Material[]) {
       "",
       m.tienda,
       nombreDe(r.categorias, m.categoriaId, "Sin categoría"),
-      nombreDe(r.fases, m.faseId, "Sin fase"),
+      nombres(r.fases, m.faseIds),
       nombres(r.espacios, m.espacioIds),
       nombres(r.contratistas, m.contratistaIds),
       m.monto,

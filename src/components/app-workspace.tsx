@@ -18,6 +18,7 @@ import { ProjectsView } from "@/features/workspace/projects-view";
 import { buildRoyal, fmt, pct, totalPagado } from "@/features/royal/model";
 import {
   Analisis,
+  Archivos,
   Contratistas,
   Cronograma,
   Espacios,
@@ -37,7 +38,8 @@ type View =
   | "cronograma"
   | "materiales"
   | "espacios"
-  | "contratistas";
+  | "contratistas"
+  | "archivos";
 // Same tabs, order and buttons as ph33-royal-palace-v14.html.
 const navigation: { id: View; label: string }[] = [
   { id: "trabajos", label: "Trabajos" },
@@ -47,6 +49,7 @@ const navigation: { id: View; label: string }[] = [
   { id: "materiales", label: "Materiales" },
   { id: "espacios", label: "Espacios" },
   { id: "contratistas", label: "Contratistas" },
+  { id: "archivos", label: "Archivos" },
 ];
 const newButtons: Record<View, { label: string; resource: Resource }[]> = {
   trabajos: [{ label: "+ Nuevo trabajo", resource: "work_items" }],
@@ -59,6 +62,7 @@ const newButtons: Record<View, { label: string; resource: Resource }[]> = {
   ],
   espacios: [{ label: "+ Nuevo espacio", resource: "spaces" }],
   contratistas: [{ label: "+ Nuevo contratista", resource: "contractors" }],
+  archivos: [],
 };
 interface ArchiveTarget {
   resource: Resource;
@@ -409,8 +413,10 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
                 <Materiales {...royalProps} />
               ) : view === "espacios" ? (
                 <Espacios {...royalProps} />
-              ) : (
+              ) : view === "contratistas" ? (
                 <Contratistas {...royalProps} />
+              ) : (
+                <Archivos {...royalProps} />
               )}
             </div>
           )

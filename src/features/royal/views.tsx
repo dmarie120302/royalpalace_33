@@ -19,6 +19,8 @@ import {
   sumaMat,
   sumarPor,
   totalPagado,
+  esFinDeSemana,
+  type Archivo,
   type Contratista,
   type Item,
   type Material,
@@ -47,6 +49,129 @@ const record = <T extends { id: string }>(list: T[], id: string) => ({
   ...list.find((x) => x.id === id),
 });
 const hoyTxt = () => new Date().toISOString().slice(0, 10);
+
+/** Thumbnail of the first image (like the HTML), or a file icon. */
+function Miniatura({
+  archivos,
+  label,
+  onOpen,
+}: {
+  archivos: Archivo[];
+  label: string;
+  onOpen: () => void;
+}) {
+  if (!archivos.length) return <span className="meta">—</span>;
+  const img = archivos.find((a) => a.tipo.startsWith("image/"));
+  return (
+    <button
+      type="button"
+      className="mini-btn"
+      aria-label={label}
+      onClick={onOpen}
+    >
+      {img ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className="miniatura" src={`/api/attachments/${img.id}`} alt="" />
+      ) : (
+        <span className="ico-doc">📄</span>
+      )}
+      {archivos.length > 1 && (
+        <span className="meta"> +{archivos.length - 1}</span>
+      )}
+    </button>
+  );
+}
+
+/* ---------- Archivos ---------- */
+export function Archivos(props: RoyalProps) {
+  const { r } = props;
+  const [tipo, setTipo] = useState("todos");
+  const pagos = r.partidas.flatMap((p) =>
+    p.pagos.map((x) => ({ ...x, partida: p })),
+  );
+  const filas = r.archivos
+    .map((a) => {
+      const pago = pagos.find((x) => x.id === a.pagoId);
+      const mat = r.materiales.find((m) => m.id === a.materialId);
+      return {
+        ...a,
+        origen: pago ? "Pago" : "Material",
+        detalle: pago
+          ? `${pago.partida.nombre} · ${pago.concepto} · ${fmt(pago.monto)}`
+          : mat
+            ? `${mat.tienda} · ${mat.descripcion} · ${fmt(mat.monto)}`
+            : "—",
+        fechaMov: pago?.fecha || mat?.fecha || "",
+      };
+    })
+    .filter((a) => a.detalle !== "—")
+    .filter(
+      (a) =>
+        tipo === "todos" ||
+        (tipo === "imagenes" ? a.tipo.startsWith("image/") : a.origen === tipo),
+    )
+    .sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+  const kb = (n: number) =>
+    n >= 1048576
+      ? `${(n / 1048576).toFixed(1)} MB`
+      : `${Math.max(1, Math.round(n / 1024))} KB`;
+  return (
+    <>
+      <div className="filtros no-imprimir">
+        <div className="campo">
+          <span>Mostrar</span>
+          <select
+            aria-label="Mostrar"
+            value={tipo}
+            onChange={(e) => setTipo(e.target.value)}
+          >
+            <option value="todos">Todos los archivos</option>
+            <option value="Pago">Comprobantes de pagos</option>
+            <option value="Material">Fotos de materiales</option>
+            <option value="imagenes">Solo imágenes</option>
+          </select>
+        </div>
+      </div>
+      <p className="resumen-filtro">
+        <b>{filas.length}</b> archivo(s) subido(s)
+      </p>
+      {filas.length ? (
+        <div className="grid-archivos">
+          {filas.map((a) => (
+            <a
+              key={a.id}
+              className="card archivo"
+              href={`/api/attachments/${a.id}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {a.tipo.startsWith("image/") ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={`/api/attachments/${a.id}`}
+                  alt={a.nombre}
+                  loading="lazy"
+                />
+              ) : (
+                <span className="archivo-doc">📄 PDF</span>
+              )}
+              <b className="archivo-nombre">{a.nombre}</b>
+              <span className="meta">
+                {a.origen} · {a.fechaMov}
+              </span>
+              <span className="meta">{a.detalle}</span>
+              <span className="meta">
+                Subido {a.fecha} · {kb(a.tamano)}
+              </span>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <p className="meta">Aún no hay archivos subidos.</p>
+      )}
+    </>
+  );
+}
 
 /* ---------- Trabajos ---------- */
 function DetallePagos({
@@ -81,26 +206,32 @@ function DetallePagos({
                 <td>{x.concepto}</td>
                 <td className="num">{fmt(x.monto)}</td>
                 <td>
-                  {x.comprobantes ? (
-                    <button
-                      className="sec mini"
-                      aria-label={`Comprobantes del pago ${x.concepto}`}
-                      onClick={() =>
-                        props.attachments(
-                          "payment",
-                          x.id,
-                          `${x.fecha} · ${x.concepto}`,
-                        )
-                      }
-                    >
-                      📎 {x.comprobantes}
-                    </button>
-                  ) : (
-                    <span className="meta">—</span>
-                  )}
+                  <Miniatura
+                    archivos={x.archivos}
+                    label={`Comprobantes del pago ${x.concepto}`}
+                    onOpen={() =>
+                      props.attachments(
+                        "payment",
+                        x.id,
+                        `${x.fecha} · ${x.concepto}`,
+                      )
+                    }
+                  />
                 </td>
                 {admin && (
                   <td style={{ whiteSpace: "nowrap" }}>
+                    <button
+                      className="sec mini"
+                      aria-label={`Editar pago ${x.concepto}`}
+                      onClick={() =>
+                        props.edit(
+                          "payments",
+                          record(props.data.payments, x.id),
+                        )
+                      }
+                    >
+                      ✎
+                    </button>{" "}
                     <button
                       className="peligro mini"
                       aria-label={`Archivar pago ${x.concepto}`}
@@ -440,7 +571,7 @@ function generarReporte(
     .sort((a, b) => (a.fecha < b.fecha ? -1 : 1))
     .map(
       (m) =>
-        `<tr><td>${esc(m.fecha)}</td><td>${esc(nombreDe(r.categorias, m.categoriaId, "Sin categoría"))}</td><td>${esc(m.tienda)}</td><td>${esc(m.descripcion)}${m.cantidad ? " (" + esc(m.cantidad) + ")" : ""}</td><td>${esc(nombreDe(r.fases, m.faseId, "Sin fase"))}</td><td>${esc(nombres(r.espacios, m.espacioIds))}</td><td>${esc(nombres(r.contratistas, m.contratistaIds))}</td><td class="n">${fmt(m.monto)}${m.incluidoEnPago ? " *" : ""}</td></tr>`,
+        `<tr><td>${esc(m.fecha)}</td><td>${esc(nombreDe(r.categorias, m.categoriaId, "Sin categoría"))}</td><td>${esc(m.tienda)}</td><td>${esc(m.descripcion)}${m.cantidad ? " (" + esc(m.cantidad) + ")" : ""}</td><td>${esc(nombres(r.fases, m.faseIds))}</td><td>${esc(nombres(r.espacios, m.espacioIds))}</td><td>${esc(nombres(r.contratistas, m.contratistaIds))}</td><td class="n">${fmt(m.monto)}${m.incluidoEnPago ? " *" : ""}</td></tr>`,
     )
     .join("");
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte ${esc(nombreObra)}</title>
@@ -935,52 +1066,6 @@ export function Analisis(props: RoyalProps) {
 }
 
 /* ---------- Fases ---------- */
-function TablaTrabajos({ r, T }: { r: Royal; T: Partida[] }) {
-  return (
-    <div style={{ overflowX: "auto" }}>
-      <table>
-        <tbody>
-          <tr>
-            <th>Trabajo</th>
-            <th>Espacios</th>
-            <th>Contratistas</th>
-            <th className="num">Presupuesto</th>
-            <th className="num">Pagado</th>
-            <th className="num">Pendiente</th>
-          </tr>
-          {T.map((p) => (
-            <tr key={p.id}>
-              <td>{p.nombre}</td>
-              <td>
-                {p.espacioIds.length ? (
-                  <Chips list={r.espacios} ids={p.espacioIds} />
-                ) : (
-                  "—"
-                )}
-              </td>
-              <td>
-                {p.contratistaIds.length ? (
-                  <Chips
-                    list={sinLetra(r.contratistas)}
-                    ids={p.contratistaIds}
-                  />
-                ) : (
-                  "—"
-                )}
-              </td>
-              <td className="num">{fmt(p.presupuesto)}</td>
-              <td className="num">{fmt(totalPagado(p))}</td>
-              <td className="num">
-                {fmt((+p.presupuesto || 0) - totalPagado(p))}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 function TablaMateriales({
   r,
   M,
@@ -1048,53 +1133,93 @@ function TablaMateriales({
 
 export function Fases(props: RoyalProps) {
   const { r } = props;
+  const [sel, setSel] = useState("todas");
+  const enFase = (m: Material, id: string | null) =>
+    id === null ? !m.faseIds.length : m.faseIds.includes(id);
+  const grupos = [
+    ...r.fases.map((f) => ({
+      id: f.id as string | null,
+      nombre: f.nombre,
+      color: f.color,
+      icono: f.icono as string | undefined,
+      espacioIds: f.espacioIds,
+    })),
+    {
+      id: null,
+      nombre: "Sin fase",
+      color: "#8a9893",
+      icono: undefined,
+      espacioIds: [] as string[],
+    },
+  ]
+    .map((g) => ({
+      ...g,
+      T: r.partidas.filter((p) => (p.faseId || null) === g.id),
+      M: r.materiales.filter((m) => enFase(m, g.id)),
+    }))
+    .filter((g) => g.id !== null || g.T.length || g.M.length);
+  const visibles = grupos.filter(
+    (g) => sel === "todas" || (g.id || "sin") === sel,
+  );
   const tarjetas = r.fases.length ? (
     <div className="grid-esp">
-      {r.fases.map((f) => {
-        const ts = r.partidas.filter((p) => p.faseId === f.id);
-        const ms = r.materiales.filter((m) => m.faseId === f.id);
-        const total = ts.reduce((a, p) => a + totalPagado(p), 0) + sumaMat(ms);
-        return (
-          <div
-            className="card esp-card"
-            key={f.id}
-            style={{ borderTop: `5px solid ${f.color}` }}
-          >
-            <div className="fila">
-              <span className="ico big" style={{ background: `${f.color}22` }}>
-                <SvgIcono k={f.icono} color={f.color} />
-              </span>
-              <Acciones
-                props={props}
-                resource="phases"
-                list={props.data.phases}
-                it={f}
-              />
-            </div>
-            <h2 style={{ marginTop: 8 }}>{f.nombre}</h2>
-            <div className="meta">
-              {ts.length} trabajo(s) · {ms.length} material(es)
-            </div>
-            <div className="meta">
-              Gasto real <b>{fmt(total)}</b>
-            </div>
+      {grupos
+        .filter((g) => g.id)
+        .map((g) => {
+          const f = r.fases.find((x) => x.id === g.id)!;
+          const total =
+            g.T.reduce((a, p) => a + totalPagado(p), 0) + sumaMat(g.M);
+          return (
             <div
-              style={{
-                marginTop: 8,
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 4,
-              }}
+              className={`card esp-card${sel === g.id ? " fase-sel" : ""}`}
+              key={f.id}
+              style={{ borderTop: `5px solid ${f.color}` }}
             >
-              {f.espacioIds.length ? (
-                <Chips list={r.espacios} ids={f.espacioIds} />
-              ) : (
-                <span className="meta">Sin espacios asignados</span>
-              )}
+              <div className="fila">
+                <span
+                  className="ico big"
+                  style={{ background: `${f.color}22` }}
+                >
+                  <SvgIcono k={f.icono} color={f.color} />
+                </span>
+                <Acciones
+                  props={props}
+                  resource="phases"
+                  list={props.data.phases}
+                  it={f}
+                />
+              </div>
+              <h2 style={{ marginTop: 8 }}>{f.nombre}</h2>
+              <div className="meta">
+                {g.T.length} trabajo(s) · {g.M.length} material(es)
+              </div>
+              <div className="meta">
+                Gasto real <b>{fmt(total)}</b>
+              </div>
+              <div
+                style={{
+                  marginTop: 8,
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 4,
+                }}
+              >
+                {f.espacioIds.length ? (
+                  <Chips list={r.espacios} ids={f.espacioIds} />
+                ) : (
+                  <span className="meta">Sin espacios asignados</span>
+                )}
+              </div>
+              <button
+                className="sec mini"
+                style={{ marginTop: 8 }}
+                onClick={() => setSel(sel === f.id ? "todas" : f.id)}
+              >
+                {sel === f.id ? "Ver todas las fases" : "Analizar esta fase"}
+              </button>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
     </div>
   ) : (
     <p className="meta">
@@ -1103,131 +1228,247 @@ export function Fases(props: RoyalProps) {
     </p>
   );
   if (!r.partidas.length && !r.materiales.length) return tarjetas;
-  const grupos = [
-    ...r.fases.map((f) => ({
-      id: f.id as string | null,
-      nombre: f.nombre,
-      color: f.color,
-      icono: f.icono,
-    })),
-    { id: null, nombre: "Sin fase", color: "#8a9893", icono: undefined },
-  ];
-  const datos = grupos
-    .map((g) => {
-      const T = r.partidas.filter((p) => (p.faseId || null) === g.id);
-      const M = r.materiales.filter((m) => (m.faseId || null) === g.id);
-      const pres = T.reduce((a, p) => a + (+p.presupuesto || 0), 0);
-      const pag = T.reduce((a, p) => a + totalPagado(p), 0);
-      const mat = sumaMat(M);
-      return { ...g, T, M, pres, pag, mat, total: pag + mat };
-    })
-    .filter((d) => d.T.length || d.M.length);
-  const granTotal = datos.reduce((a, d) => a + d.total, 0);
   let n = 0;
   return (
     <>
       {tarjetas}
       <div className="filtros no-imprimir">
+        <div className="campo">
+          <span>Fase a analizar</span>
+          <select
+            aria-label="Fase a analizar"
+            value={sel}
+            onChange={(e) => setSel(e.target.value)}
+          >
+            <option value="todas">Todas, una por una</option>
+            {grupos.map((g) => (
+              <option key={g.id || "sin"} value={g.id || "sin"}>
+                {g.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
         <BotonesReporte
           props={props}
-          T={r.partidas}
-          M={r.materiales}
-          sub="Todas las fases"
+          T={visibles.flatMap((g) => g.T)}
+          M={[...new Set(visibles.flatMap((g) => g.M))]}
+          sub={
+            sel === "todas"
+              ? "Todas las fases"
+              : `Fase: ${visibles[0]?.nombre || ""}`
+          }
         />
       </div>
-      <div className="kpis">
-        <div className="kpi">
-          <span>Gasto real total</span>
-          <b>{fmt(granTotal)}</b>
-        </div>
-        <div className="kpi">
-          <span>Fases con movimientos</span>
-          <b>{datos.length}</b>
-        </div>
-      </div>
-      <Seccion n={n++} titulo="Gasto real por fase">
-        <Pie
-          datos={datos.map((d) => ({
-            label: d.nombre,
-            valor: d.total,
-            color: d.color,
-            icono: d.icono,
-          }))}
-        />
-      </Seccion>
-      <Seccion n={n++} titulo="Comparativo por fase">
-        <Columnas
-          dobles={false}
-          items={datos.map((d) => ({
-            label: d.nombre,
-            valor: d.total,
-            color: d.color,
-          }))}
-        />
-      </Seccion>
-      <Seccion n={n++} titulo="Resumen">
-        <div style={{ overflowX: "auto" }}>
-          <table>
-            <tbody>
-              <tr>
-                <th>Fase</th>
-                <th className="num">Trabajos</th>
-                <th className="num">Materiales</th>
-                <th className="num">Presupuesto</th>
-                <th className="num">Pagado</th>
-                <th className="num">Materiales propios</th>
-                <th className="num">Total real</th>
-                <th className="num">%</th>
-              </tr>
-              {datos.map((d) => (
-                <tr key={d.id || "sin"}>
-                  <td>
-                    <Chip
-                      it={{ nombre: d.nombre, color: d.color, icono: d.icono }}
-                    />
-                  </td>
-                  <td className="num">{d.T.length}</td>
-                  <td className="num">{d.M.length}</td>
-                  <td className="num">{fmt(d.pres)}</td>
-                  <td className="num">{fmt(d.pag)}</td>
-                  <td className="num">{fmt(d.mat)}</td>
-                  <td className="num">
-                    <b>{fmt(d.total)}</b>
-                  </td>
-                  <td className="num">{pct(d.total, granTotal).toFixed(0)}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Seccion>
-      {datos.map((d) => (
-        <div key={d.id || "sin"}>
-          <div className="fase-bloque" style={{ borderColor: d.color }}>
-            <h3 className="tit" style={{ ["--tc" as string]: d.color }}>
-              {d.icono && <SvgIcono k={d.icono} color={d.color} />} {d.nombre}
-            </h3>
-            <div className="meta">
-              Gasto real <b>{fmt(d.total)}</b> · {d.T.length} trabajo(s) ·{" "}
-              {d.M.length} material(es)
+      {visibles.map((g) => {
+        const pres = g.T.reduce((a, p) => a + (+p.presupuesto || 0), 0);
+        const pag = g.T.reduce((a, p) => a + totalPagado(p), 0);
+        const mat = sumaMat(g.M);
+        const avance = g.T.length
+          ? Math.round(g.T.reduce((a, p) => a + p.avance, 0) / g.T.length)
+          : 0;
+        const pagos = g.T.flatMap((p) =>
+          p.pagos.map((x) => ({ ...x, partida: p })),
+        ).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+        const sCon = sumarPor(g.T, (p) => p.contratistaIds, totalPagado);
+        const Mp = materialesPropios(g.M);
+        const sCat = sumarPor(
+          Mp,
+          (m) => (m.categoriaId ? [m.categoriaId] : []),
+          (m) => +m.monto || 0,
+        );
+        const fechas = g.T.filter((p) => p.fechaInicio);
+        const inicio = fechas.map((p) => p.fechaInicio).sort()[0];
+        const fin = fechas
+          .map((p) => p.fechaFin || p.fechaInicio)
+          .sort()
+          .slice(-1)[0];
+        return (
+          <section key={g.id || "sin"} className="fase-analisis">
+            <div className="fase-bloque" style={{ borderColor: g.color }}>
+              <h3 className="tit" style={{ ["--tc" as string]: g.color }}>
+                {g.icono && <SvgIcono k={g.icono} color={g.color} />} {g.nombre}
+              </h3>
+              <div className="meta">
+                {g.T.length} trabajo(s) · {g.M.length} material(es)
+                {inicio && (
+                  <>
+                    {" · "}📅 {fechaCorta(aDia(inicio))} –{" "}
+                    {fechaCorta(aDia(fin))}
+                  </>
+                )}
+              </div>
+              {g.espacioIds.length > 0 && (
+                <div style={{ marginTop: 6 }}>
+                  <Chips list={r.espacios} ids={g.espacioIds} />
+                </div>
+              )}
             </div>
-          </div>
-          <Seccion n={n++} titulo="Trabajos">
-            {d.T.length ? (
-              <TablaTrabajos r={r} T={d.T} />
-            ) : (
-              <p className="meta">Sin trabajos en esta fase.</p>
+            <div className="kpis">
+              <div className="kpi">
+                <span>Presupuesto</span>
+                <b>{fmt(pres)}</b>
+              </div>
+              <div className="kpi">
+                <span>Pagado</span>
+                <b>{fmt(pag)}</b>
+              </div>
+              <div className="kpi">
+                <span>Pendiente por pagar</span>
+                <b>{fmt(pres - pag)}</b>
+              </div>
+              <div className="kpi">
+                <span>Materiales propios</span>
+                <b>{fmt(mat)}</b>
+              </div>
+              <div className="kpi">
+                <span>Gasto real</span>
+                <b>{fmt(pag + mat)}</b>
+              </div>
+              <div className="kpi">
+                <span>Avance físico promedio</span>
+                <b>{avance}%</b>
+              </div>
+            </div>
+            <span className="lbl">Pagado del presupuesto de la fase</span>
+            <Barra
+              valor={pag}
+              total={pres}
+              tono={pag > pres && pres > 0 ? "alerta" : ""}
+            />
+            <Seccion n={n++} titulo="Trabajos de la fase">
+              {g.T.length ? (
+                <div style={{ overflowX: "auto" }}>
+                  <table>
+                    <tbody>
+                      <tr>
+                        <th>Trabajo</th>
+                        <th>Contratistas</th>
+                        <th>Fechas</th>
+                        <th>Estado</th>
+                        <th className="num">Presupuesto</th>
+                        <th className="num">Pagado</th>
+                        <th className="num">Pendiente</th>
+                      </tr>
+                      {g.T.map((p) => {
+                        const est = estadoTrabajo(p);
+                        return (
+                          <tr key={p.id}>
+                            <td>
+                              <b>{p.nombre}</b>
+                              <Barra
+                                valor={totalPagado(p)}
+                                total={p.presupuesto}
+                              />
+                            </td>
+                            <td>
+                              {p.contratistaIds.length ? (
+                                <Chips
+                                  list={sinLetra(r.contratistas)}
+                                  ids={p.contratistaIds}
+                                />
+                              ) : (
+                                "—"
+                              )}
+                            </td>
+                            <td>
+                              {p.fechaInicio
+                                ? `${fechaCorta(aDia(p.fechaInicio))}${p.fechaFin ? " – " + fechaCorta(aDia(p.fechaFin)) : ""}`
+                                : "—"}
+                            </td>
+                            <td style={{ color: est.c }}>{est.t}</td>
+                            <td className="num">{fmt(p.presupuesto)}</td>
+                            <td className="num">{fmt(totalPagado(p))}</td>
+                            <td className="num">
+                              {fmt((+p.presupuesto || 0) - totalPagado(p))}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="meta">Sin trabajos en esta fase.</p>
+              )}
+            </Seccion>
+            <Seccion n={n++} titulo="Pagos de la fase">
+              {pagos.length ? (
+                <table>
+                  <tbody>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Trabajo</th>
+                      <th>Descripción</th>
+                      <th className="num">Monto</th>
+                    </tr>
+                    {pagos.map((x) => (
+                      <tr key={x.id}>
+                        <td>{x.fecha}</td>
+                        <td>{x.partida.nombre}</td>
+                        <td>{x.concepto}</td>
+                        <td className="num">{fmt(x.monto)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="meta">Sin pagos en esta fase.</p>
+              )}
+            </Seccion>
+            {pag > 0 && (
+              <Seccion n={n++} titulo="Pagado por contratista en esta fase">
+                <Pie
+                  datos={[
+                    ...r.contratistas.map((c) => ({
+                      label: c.nombre,
+                      letra: c.letra,
+                      color: c.color,
+                      valor: sCon[c.id]?.valor || 0,
+                    })),
+                    {
+                      label: "Sin contratista",
+                      color: "#8a9893",
+                      valor: sCon.ninguno?.valor || 0,
+                    },
+                  ].sort((a, b) => b.valor - a.valor)}
+                />
+              </Seccion>
             )}
-          </Seccion>
-          <Seccion n={n++} titulo="Materiales">
-            {d.M.length ? (
-              <TablaMateriales r={r} M={d.M} conContratistas />
-            ) : (
-              <p className="meta">Sin materiales en esta fase.</p>
-            )}
-          </Seccion>
-        </div>
-      ))}
+            <Seccion n={n++} titulo="Materiales de la fase">
+              {g.M.length ? (
+                <>
+                  <TablaMateriales r={r} M={g.M} conContratistas />
+                  {Mp.length > 0 && (
+                    <div style={{ marginTop: 12 }}>
+                      <Pie
+                        datos={[
+                          ...r.categorias.map((c) => ({
+                            label: c.nombre,
+                            icono: c.icono,
+                            color: c.color,
+                            valor: sCat[c.id]?.valor || 0,
+                          })),
+                          {
+                            label: "Sin categoría",
+                            color: "#8a9893",
+                            valor: sCat.ninguno?.valor || 0,
+                          },
+                        ].sort((a, b) => b.valor - a.valor)}
+                      />
+                    </div>
+                  )}
+                  <p className="meta">
+                    Si un material pertenece a varias fases, aparece completo en
+                    cada una.
+                  </p>
+                </>
+              ) : (
+                <p className="meta">Sin materiales en esta fase.</p>
+              )}
+            </Seccion>
+          </section>
+        );
+      })}
     </>
   );
 }
@@ -1310,11 +1551,15 @@ export function Materiales(props: RoyalProps) {
             )}
           </tr>
           {orden.map((m) => {
-            const f = r.fases.find((x) => x.id === m.faseId);
+            const fs = r.fases.filter((x) => m.faseIds.includes(x.id));
             const c = r.categorias.find((x) => x.id === m.categoriaId);
             const t = r.partidas.find((x) => x.id === m.partidaId);
             const hay =
-              c || f || m.espacioIds.length || m.contratistaIds.length || t;
+              c ||
+              fs.length ||
+              m.espacioIds.length ||
+              m.contratistaIds.length ||
+              t;
             return (
               <tr key={m.id}>
                 <td>{m.fecha}</td>
@@ -1333,7 +1578,9 @@ export function Materiales(props: RoyalProps) {
                     {hay ? (
                       <>
                         {c && <Chip it={c} />}
-                        {f && <Chip it={f} />}
+                        {fs.map((x) => (
+                          <Chip key={x.id} it={x} />
+                        ))}
                         <Chips list={r.espacios} ids={m.espacioIds} />
                         <Chips
                           list={sinLetra(r.contratistas)}
@@ -1350,23 +1597,17 @@ export function Materiales(props: RoyalProps) {
                 </td>
                 <td className="num">{fmt(m.monto)}</td>
                 <td>
-                  {m.fotos ? (
-                    <button
-                      className="sec mini"
-                      aria-label={`Comprobantes de ${m.descripcion}`}
-                      onClick={() =>
-                        props.attachments(
-                          "material",
-                          m.id,
-                          `${m.fecha} · ${m.tienda} · ${m.descripcion}`,
-                        )
-                      }
-                    >
-                      📎 {m.fotos}
-                    </button>
-                  ) : (
-                    <span className="meta">—</span>
-                  )}
+                  <Miniatura
+                    archivos={m.archivos}
+                    label={`Comprobantes de ${m.descripcion}`}
+                    onOpen={() =>
+                      props.attachments(
+                        "material",
+                        m.id,
+                        `${m.fecha} · ${m.tienda} · ${m.descripcion}`,
+                      )
+                    }
+                  />
                 </td>
                 {admin && (
                   <td style={{ whiteSpace: "nowrap" }}>
@@ -1498,15 +1739,10 @@ function CuerpoCron({
   const hoy = hoyDia();
   const capas = [];
   for (let d = r0; d <= r1; d++) {
-    const dow = new Date(d * DIA).getUTCDay();
     const left = `calc(var(--lbl) + ${(d - r0) * px}px)`;
     if (d === hoy)
       capas.push(
         <div key={d} className="cr-col hoy" style={{ left, width: px }} />,
-      );
-    else if (dow === 0 || dow === 6)
-      capas.push(
-        <div key={d} className="cr-col fds" style={{ left, width: px }} />,
       );
   }
   const meses: { k: string; n: number; d0: number; nombre: string }[] = [];
@@ -1534,7 +1770,7 @@ function CuerpoCron({
       filaDias.push(
         <div
           key={d}
-          className={`cr-dia${dow === 0 || dow === 6 ? " fds" : ""}${d === hoy ? " hoy" : ""}`}
+          className={`cr-dia${d === hoy ? " hoy" : ""}`}
           style={{ left: (d - r0) * px, width: px }}
         >
           <b>{dt.getUTCDate()}</b>
@@ -1582,20 +1818,21 @@ function CuerpoCron({
       </div>
     </div>
   );
+  // Saturdays and Sundays are not working days: no square and not counted.
   const cuadrados = (p: Partida, color: string) => {
     const ini = aDia(p.fechaInicio);
     const fin = p.fechaFin ? aDia(p.fechaFin) : ini;
-    const total = fin - ini + 1;
+    const habiles: number[] = [];
+    for (let d = ini; d <= fin; d++) if (!esFinDeSemana(d)) habiles.push(d);
     const pagados = Math.round(
-      (pct(totalPagado(p), p.presupuesto) / 100) * total,
+      (pct(totalPagado(p), p.presupuesto) / 100) * habiles.length,
     );
     const est = estadoTrabajo(p);
-    return Array.from({ length: Math.max(0, total) }, (_, i) => {
-      const d = ini + i;
+    return habiles.map((d, i) => {
       const pagado = i < pagados;
       return (
         <button
-          key={i}
+          key={d}
           type="button"
           className="cr-cuad"
           tabIndex={-1}
@@ -1943,7 +2180,7 @@ export function VistaContratista(props: RoyalProps & { c: Contratista }) {
   const ids = [
     ...new Set([
       ...T.map((p) => p.faseId || null),
-      ...M.map((m) => m.faseId || null),
+      ...M.flatMap((m) => (m.faseIds.length ? m.faseIds : [null])),
     ]),
   ];
   const grupos = [
@@ -2009,7 +2246,9 @@ export function VistaContratista(props: RoyalProps & { c: Contratista }) {
       {grupos.length ? (
         grupos.map((g) => {
           const Tg = T.filter((p) => (p.faseId || null) === g.id);
-          const Mg = M.filter((m) => (m.faseId || null) === g.id);
+          const Mg = M.filter((m) =>
+            g.id === null ? !m.faseIds.length : m.faseIds.includes(g.id),
+          );
           const presG = Tg.reduce((a, p) => a + (+p.presupuesto || 0), 0);
           const pagG = Tg.reduce((a, p) => a + totalPagado(p), 0);
           return (

@@ -42,6 +42,7 @@ export async function loadWorkspace(): Promise<Workspace> {
     "payments",
     "material_purchases",
     "material_spaces",
+    "material_phases",
     "attachments",
     "audit_events",
   ] as const;
@@ -53,6 +54,7 @@ export async function loadWorkspace(): Promise<Workspace> {
     phase_spaces: ["project_id", "phase_id", "space_id"],
     work_assignments: ["project_id", "work_item_id", "contractor_id"],
     material_spaces: ["project_id", "material_id", "space_id"],
+    material_phases: ["project_id", "material_id", "phase_id"],
   };
   const results = await Promise.all(
     tables.map(async (table) => {
@@ -106,6 +108,10 @@ export async function loadWorkspace(): Promise<Workspace> {
     material_id: string;
     space_id: string;
   }[];
+  const mp = rows.material_phases.filter((x) => !x.archived_at) as {
+    material_id: string;
+    phase_id: string;
+  }[];
   const assignments = rows.work_assignments.filter(
     (x) => !x.archived_at,
   ) as Assignment[];
@@ -124,6 +130,9 @@ export async function loadWorkspace(): Promise<Workspace> {
       space_ids: ms
         .filter((x) => x.material_id === m.id)
         .map((x) => x.space_id),
+      phase_ids: mp
+        .filter((x) => x.material_id === m.id)
+        .map((x) => x.phase_id),
     }),
   );
   return {

@@ -77,6 +77,7 @@ function material(overrides: Partial<MaterialPurchase> = {}): MaterialPurchase {
     category_id: null,
     covered_by_payment_id: null,
     space_ids: [],
+    phase_ids: [],
     amount_cents: 10_000,
     date: "2026-10-08",
     store: "Ferretería",

@@ -278,7 +278,11 @@ export function RoyalForm(props: RoyalFormProps) {
     Array.isArray(record.space_ids) ? (record.space_ids as string[]) : [],
   );
   const [fase, setFase] = useState<string[]>(
-    record.phase_id ? [str(record.phase_id)] : [],
+    Array.isArray(record.phase_ids) && record.phase_ids.length
+      ? (record.phase_ids as string[])
+      : record.phase_id
+        ? [str(record.phase_id)]
+        : [],
   );
   // Work
   const work = data.works.find((w) => w.id === id);
@@ -450,6 +454,7 @@ export function RoyalForm(props: RoyalFormProps) {
           amount_cents: toCents(monto),
           category_id: categoria[0] || null,
           phase_id: fase[0] || null,
+          phase_ids: fase,
           work_item_id: trabajo || null,
           space_ids: espacios,
           contractor_id: quien[0] || null,
@@ -777,12 +782,12 @@ export function RoyalForm(props: RoyalFormProps) {
         vacio="Sin categoría"
         onChange={setCategoria}
       />
-      <span className="lbl">Fase</span>
+      <span className="lbl">Fases (puedes elegir varias)</span>
       <Picker
-        label="Fase"
+        label="Fases"
         items={r.fases}
         sel={fase}
-        multi={false}
+        multi
         vacio="Sin fase"
         onChange={setFase}
       />
