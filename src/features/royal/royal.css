@@ -189,3 +189,5 @@
 .royal .fase-cron-filtros .campo{display:flex;flex-direction:column;gap:3px;min-width:150px}
 .royal .fase-cron-filtros .campo span{font-size:.8rem;color:var(--mut)}
 .royal .fase-cron-filtros select{min-width:0;width:100%}
+.royal .fase-cron-cab.cerrada{border-radius:10px}
+.royal .fase-cron-cab .fase-cron-btn{margin-left:auto;background:rgba(255,255,255,.95);color:var(--txt);padding:6px 12px;font-weight:600}

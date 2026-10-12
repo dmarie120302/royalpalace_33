@@ -22,25 +22,26 @@ import { buildRoyal } from "../../src/features/royal/model";
 import type { Project, Workspace } from "../../src/domain/types";
 
 describe("orden de las fases", () => {
-  it("ordena por nombre de forma natural, sin importar el orden guardado", () => {
+  it("respeta el orden en que se crearon, sin importar el orden guardado", () => {
     const project = { id: "p", archived_at: null } as Project;
-    const fase = (id: string, name: string) => ({
+    const fase = (id: string, name: string, created_at: string) => ({
       id,
       name,
       color: "#000000",
       icon: "casa",
       project_id: "p",
-      created_at: "",
+      created_at,
       archived_at: null,
       space_ids: [],
     });
     const data = {
       spaces: [],
       phases: [
-        fase("c", "FASE 3"),
-        fase("d", "FASE 10"),
-        fase("a", "FASE 1"),
-        fase("b", "FASE 2"),
+        fase("c", "FASE 3", "2026-10-08T23:11:05Z"),
+        fase("e", "FASE 5", "2026-10-08T23:11:47Z"),
+        fase("a", "FASE 1", "2026-10-08T23:10:28Z"),
+        fase("d", "FASE 4", "2026-10-08T23:11:27Z"),
+        fase("b", "FASE 2", "2026-10-08T23:10:43Z"),
       ],
       categories: [],
       contractors: [],
@@ -54,7 +55,8 @@ describe("orden de las fases", () => {
       "FASE 1",
       "FASE 2",
       "FASE 3",
-      "FASE 10",
+      "FASE 4",
+      "FASE 5",
     ]);
   });
 });

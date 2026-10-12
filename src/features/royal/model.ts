@@ -158,12 +158,13 @@ export function buildRoyal(data: Workspace, project: Project): Royal {
   const payments = mine(data.payments);
   return {
     espacios: porNombre(catalog(mine(data.spaces))),
-    fases: porNombre(
-      mine(data.phases).map((f) => ({
+    // Phases keep the order in which they were created.
+    fases: [...mine(data.phases)]
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .map((f) => ({
         ...catalog([f])[0],
         espacioIds: f.space_ids,
       })),
-    ),
     categorias: porNombre(catalog(mine(data.categories))),
     contratistas: porNombre(
       mine(data.contractors).map((c) => ({

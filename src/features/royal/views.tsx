@@ -1898,6 +1898,7 @@ function FaseCron({
   const [con, setCon] = useState("todos");
   const [esp, setEsp] = useState("todos");
   const [agr, setAgr] = useState<Sec>("contratista");
+  const [abierto, setAbierto] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const lista = partidas.filter(
     (p) =>
@@ -1913,75 +1914,94 @@ function FaseCron({
       0,
       (hoyDia() - r0) * px + px / 2 - w.clientWidth / 2,
     );
-  }, [zoom, con, esp, agr]);
+  }, [zoom, con, esp, agr, abierto]);
   const conIds = [...new Set(partidas.flatMap((p) => p.contratistaIds))];
   const espIds = [...new Set(partidas.flatMap((p) => p.espacioIds))];
   return (
     <div className="fase-cron">
-      <div className="fase-cron-cab" style={{ background: color }}>
+      <div
+        className={`fase-cron-cab${abierto ? "" : " cerrada"}`}
+        style={{ background: color }}
+      >
         {icono && <SvgIcono k={icono} color="#fff" />} {nombre}
         <span style={{ fontWeight: 400, opacity: 0.85 }}>
           · {partidas.length} trabajo(s)
         </span>
+        <button
+          className="fase-cron-btn"
+          aria-expanded={abierto}
+          onClick={() => setAbierto(!abierto)}
+        >
+          {abierto ? "Ocultar ▴" : "Ver detalles ▾"}
+        </button>
       </div>
-      <div className="fase-cron-filtros no-imprimir">
-        <div className="campo">
-          <span>Contratista</span>
-          <select
-            aria-label={`Contratista en ${nombre}`}
-            value={con}
-            onChange={(e) => setCon(e.target.value)}
-          >
-            <option value="todos">Todos</option>
-            {r.contratistas
-              .filter((c) => conIds.includes(c.id))
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-          </select>
-        </div>
-        <div className="campo">
-          <span>Espacio</span>
-          <select
-            aria-label={`Espacio en ${nombre}`}
-            value={esp}
-            onChange={(e) => setEsp(e.target.value)}
-          >
-            <option value="todos">Todos</option>
-            {r.espacios
-              .filter((x) => espIds.includes(x.id))
-              .map((x) => (
-                <option key={x.id} value={x.id}>
-                  {x.nombre}
-                </option>
-              ))}
-          </select>
-        </div>
-        <div className="campo">
-          <span>Colores por</span>
-          <select
-            aria-label={`Colores en ${nombre}`}
-            value={agr}
-            onChange={(e) => setAgr(e.target.value as Sec)}
-          >
-            <option value="contratista">Contratista</option>
-            <option value="espacio">Espacio</option>
-          </select>
-        </div>
-      </div>
-      {lista.length ? (
-        <CuerpoCron
-          r={r}
-          datados={lista}
-          secciones={[agr]}
-          zoom={zoom}
-          onVer={onVer}
-          wrapRef={ref}
-        />
-      ) : (
-        <p className="meta">Ningún trabajo coincide con estos filtros.</p>
+      {abierto && !partidas.length && (
+        <p className="meta" style={{ padding: "8px 2px" }}>
+          Esta fase todavía no tiene trabajos con fechas.
+        </p>
+      )}
+      {abierto && partidas.length > 0 && (
+        <>
+          <div className="fase-cron-filtros no-imprimir">
+            <div className="campo">
+              <span>Contratista</span>
+              <select
+                aria-label={`Contratista en ${nombre}`}
+                value={con}
+                onChange={(e) => setCon(e.target.value)}
+              >
+                <option value="todos">Todos</option>
+                {r.contratistas
+                  .filter((c) => conIds.includes(c.id))
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <div className="campo">
+              <span>Espacio</span>
+              <select
+                aria-label={`Espacio en ${nombre}`}
+                value={esp}
+                onChange={(e) => setEsp(e.target.value)}
+              >
+                <option value="todos">Todos</option>
+                {r.espacios
+                  .filter((x) => espIds.includes(x.id))
+                  .map((x) => (
+                    <option key={x.id} value={x.id}>
+                      {x.nombre}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <div className="campo">
+              <span>Colores por</span>
+              <select
+                aria-label={`Colores en ${nombre}`}
+                value={agr}
+                onChange={(e) => setAgr(e.target.value as Sec)}
+              >
+                <option value="contratista">Contratista</option>
+                <option value="espacio">Espacio</option>
+              </select>
+            </div>
+          </div>
+          {lista.length ? (
+            <CuerpoCron
+              r={r}
+              datados={lista}
+              secciones={[agr]}
+              zoom={zoom}
+              onVer={onVer}
+              wrapRef={ref}
+            />
+          ) : (
+            <p className="meta">Ningún trabajo coincide con estos filtros.</p>
+          )}
+        </>
       )}
     </div>
   );
@@ -2074,7 +2094,7 @@ export function Cronograma(
     fase: true,
   });
   const [ver, setVer] = useState<Partida | null>(null);
-  const [vista, setVista] = useState<"general" | "fase">("general");
+  const [vista, setVista] = useState<"general" | "fase">("fase");
   const wrapRef = useRef<HTMLDivElement>(null);
   const datados = lista.filter((p) => p.fechaInicio);
   const centrarHoy = () => {
@@ -2122,13 +2142,13 @@ export function Cronograma(
               className={`cr-btn ${vista === "general" ? "act" : ""}`}
               onClick={() => setVista("general")}
             >
-              Vista general
+              Todo junto
             </button>
             <button
               className={`cr-btn ${vista === "fase" ? "act" : ""}`}
               onClick={() => setVista("fase")}
             >
-              Por fase (detalle)
+              Por fase
             </button>
           </div>
         )}
@@ -2194,7 +2214,7 @@ export function Cronograma(
             items: datados.filter((p) => !p.faseId),
           },
         ]
-          .filter((g) => g.items.length)
+          .filter((g) => g.k !== "sin" || g.items.length)
           .map((g) => (
             <FaseCron
               key={g.k}
