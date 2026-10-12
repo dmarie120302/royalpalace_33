@@ -194,3 +194,7 @@
 .royal .esp-card > .sec.mini{margin-top:8px}
 .royal .plegable td .progreso{height:14px;margin:4px 0 0}
 .royal .plegable td .progreso b{font-size:.65rem}
+.royal .registrar-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+.royal .registrar-grid form h2{margin:0 0 4px;font-size:1.05rem}
+.royal .detalle-trabajo{position:sticky;top:70px}
+@media (max-width:760px){.royal .registrar-grid{grid-template-columns:1fr}.royal .detalle-trabajo{position:static}}

@@ -2,6 +2,7 @@
 // Views of ph33-royal-palace-v14.html, fed by the project's Supabase data.
 import { useEffect, useRef, useState } from "react";
 import type { ViewProps } from "@/features/workspace/view-types";
+import type { MutationInput, Resource } from "@/domain/types";
 import {
   aDia,
   csvMovimientos,
@@ -44,6 +45,7 @@ export type RoyalProps = ViewProps & {
   r: Royal;
   refresh: () => Promise<void>;
   notify: (message: string, error?: boolean) => void;
+  save: (resource: Resource, input: MutationInput) => Promise<string>;
 };
 // Contractor chips in lists show a color dot, as in the HTML.
 const sinLetra = (list: Contratista[]) =>

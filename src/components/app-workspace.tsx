@@ -18,6 +18,7 @@ import { ProjectsView } from "@/features/workspace/projects-view";
 import { buildRoyal, fmt, pct, totalPagado } from "@/features/royal/model";
 import { Archivos } from "@/features/royal/archivos";
 import { Movimientos } from "@/features/royal/movimientos";
+import { Registrar } from "@/features/royal/registrar";
 import {
   Analisis,
   Contratistas,
@@ -34,6 +35,7 @@ import type { ViewProps } from "@/features/workspace/view-types";
 
 type View =
   | "trabajos"
+  | "registrar"
   | "fases"
   | "analisis"
   | "cronograma"
@@ -45,6 +47,7 @@ type View =
 // Same tabs, order and buttons as ph33-royal-palace-v14.html.
 const navigation: { id: View; label: string }[] = [
   { id: "trabajos", label: "Trabajos" },
+  { id: "registrar", label: "Registrar" },
   { id: "fases", label: "Fases" },
   { id: "analisis", label: "Análisis" },
   { id: "cronograma", label: "Cronograma" },
@@ -56,6 +59,7 @@ const navigation: { id: View; label: string }[] = [
 ];
 const newButtons: Record<View, { label: string; resource: Resource }[]> = {
   trabajos: [{ label: "+ Nuevo trabajo", resource: "work_items" }],
+  registrar: [],
   fases: [{ label: "+ Nueva fase", resource: "phases" }],
   analisis: [],
   cronograma: [],
@@ -234,7 +238,7 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
     ? royal.partidas.reduce((a, p) => a + totalPagado(p), 0)
     : 0;
   const royalProps =
-    props && royal ? { ...props, r: royal, refresh, notify } : null;
+    props && royal ? { ...props, r: royal, refresh, notify, save } : null;
   return (
     <div className="app-shell">
       <header className="app-header no-print">
@@ -408,6 +412,8 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
                 )
               ) : view === "trabajos" ? (
                 <Trabajos {...royalProps} />
+              ) : view === "registrar" ? (
+                <Registrar {...royalProps} />
               ) : view === "fases" ? (
                 <Fases {...royalProps} />
               ) : view === "analisis" ? (
