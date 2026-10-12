@@ -1153,7 +1153,7 @@ export function Fases(props: RoyalProps) {
           sub="Fases desplegadas"
         />
       </div>
-      {grupos.map((g, idx) => {
+      {grupos.map((g) => {
         const pres = g.T.reduce((a, p) => a + (+p.presupuesto || 0), 0);
         const pag = g.T.reduce((a, p) => a + totalPagado(p), 0);
         const mat = sumaMat(g.M);
@@ -1190,10 +1190,7 @@ export function Fases(props: RoyalProps) {
                 >
                   <SvgIcono k={g.icono || "casa"} color={g.color} />
                 </span>
-                <h2>
-                  {g.id ? `Fase ${idx + 1} · ` : ""}
-                  {g.nombre}
-                </h2>
+                <h2>{g.nombre}</h2>
               </div>
               <span
                 style={{ display: "inline-flex", gap: 6, alignItems: "center" }}
@@ -1218,10 +1215,6 @@ export function Fases(props: RoyalProps) {
             {abiertos.includes(llave(g)) && (
               <div className="plegable-cuerpo">
                 <div className="fase-bloque" style={{ borderColor: g.color }}>
-                  <h3 className="tit" style={{ ["--tc" as string]: g.color }}>
-                    {g.icono && <SvgIcono k={g.icono} color={g.color} />}{" "}
-                    {g.nombre}
-                  </h3>
                   <div className="meta">
                     {g.T.length} trabajo(s) · {g.M.length} material(es)
                     {inicio && (

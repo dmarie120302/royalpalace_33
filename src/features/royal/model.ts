@@ -120,6 +120,14 @@ export function iconFor(name: string): string {
 }
 
 const dollars = (cents: number) => cents / 100;
+/** Natural order by name: "FASE 2" before "FASE 10". */
+const porNombre = <T extends { nombre: string }>(list: T[]) =>
+  [...list].sort((a, b) =>
+    a.nombre.localeCompare(b.nombre, "es", {
+      numeric: true,
+      sensitivity: "base",
+    }),
+  );
 
 export function buildRoyal(data: Workspace, project: Project): Royal {
   const mine = <T extends { project_id: string; archived_at: string | null }>(
@@ -149,46 +157,57 @@ export function buildRoyal(data: Workspace, project: Project): Royal {
     }));
   const payments = mine(data.payments);
   return {
-    espacios: catalog(mine(data.spaces)),
-    fases: mine(data.phases).map((f) => ({
-      ...catalog([f])[0],
-      espacioIds: f.space_ids,
-    })),
-    categorias: catalog(mine(data.categories)),
-    contratistas: mine(data.contractors).map((c) => ({
-      id: c.id,
-      nombre: c.name,
-      color: c.color,
-      letra: (c.name || "?").charAt(0).toUpperCase(),
-      detalle: c.trade,
-      oficio: c.trade,
-      telefono: c.phone,
-      usuario: emailToUsername(c.email),
-      vinculado: !!c.user_id,
-      userId: c.user_id,
-    })),
-    partidas: mine(data.works).map((w) => ({
-      id: w.id,
-      nombre: w.name,
-      presupuesto: dollars(w.budget_cents),
-      faseId: w.phase_id,
-      espacioIds: w.space_ids,
-      contratistaIds: [...new Set(w.assignments.map((a) => a.contractor_id))],
-      fechaInicio: w.start_date || "",
-      fechaFin: w.end_date || "",
-      avance: w.progress,
-      pagos: payments
-        .filter((p) => p.work_item_id === w.id)
-        .map((p) => ({
-          id: p.id,
-          fecha: p.date,
-          concepto: p.description,
-          monto: dollars(p.amount_cents),
-          contratistaId: p.contractor_id,
-          comprobantes: archivosDe("pagoId", p.id).length,
-          archivos: archivosDe("pagoId", p.id),
-        })),
-    })),
+    espacios: porNombre(catalog(mine(data.spaces))),
+    fases: porNombre(
+      mine(data.phases).map((f) => ({
+        ...catalog([f])[0],
+        espacioIds: f.space_ids,
+      })),
+    ),
+    categorias: porNombre(catalog(mine(data.categories))),
+    contratistas: porNombre(
+      mine(data.contractors).map((c) => ({
+        id: c.id,
+        nombre: c.name,
+        color: c.color,
+        letra: (c.name || "?").charAt(0).toUpperCase(),
+        detalle: c.trade,
+        oficio: c.trade,
+        telefono: c.phone,
+        usuario: emailToUsername(c.email),
+        vinculado: !!c.user_id,
+        userId: c.user_id,
+      })),
+    ),
+    // Works in date order (undated last), then by name.
+    partidas: [...mine(data.works)]
+      .sort(
+        (a, b) =>
+          (a.start_date || "9999").localeCompare(b.start_date || "9999") ||
+          a.name.localeCompare(b.name, "es", { numeric: true }),
+      )
+      .map((w) => ({
+        id: w.id,
+        nombre: w.name,
+        presupuesto: dollars(w.budget_cents),
+        faseId: w.phase_id,
+        espacioIds: w.space_ids,
+        contratistaIds: [...new Set(w.assignments.map((a) => a.contractor_id))],
+        fechaInicio: w.start_date || "",
+        fechaFin: w.end_date || "",
+        avance: w.progress,
+        pagos: payments
+          .filter((p) => p.work_item_id === w.id)
+          .map((p) => ({
+            id: p.id,
+            fecha: p.date,
+            concepto: p.description,
+            monto: dollars(p.amount_cents),
+            contratistaId: p.contractor_id,
+            comprobantes: archivosDe("pagoId", p.id).length,
+            archivos: archivosDe("pagoId", p.id),
+          })),
+      })),
     archivos,
     enlaces: (data.links || [])
       .filter((l) => l.project_id === project.id && !l.archived_at)
