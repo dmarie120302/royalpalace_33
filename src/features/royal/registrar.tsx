@@ -63,7 +63,11 @@ function DetalleTrabajo({ props, p }: { props: RoyalProps; p: Partida }) {
         {p.fechaInicio
           ? `📅 ${fechaCorta(aDia(p.fechaInicio))}${p.fechaFin ? " – " + fechaCorta(aDia(p.fechaFin)) : ""}`
           : "Sin fechas"}
-        {" · "}Avance físico {p.avance}%
+        {" · "}Avance{" "}
+        {Math.round(
+          p.presupuesto > 0 ? Math.min(100, (pag / p.presupuesto) * 100) : 0,
+        )}
+        % pagado
       </div>
       <div className="kpis" style={{ marginTop: 8 }}>
         <div className="kpi">

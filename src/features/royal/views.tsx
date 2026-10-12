@@ -227,8 +227,16 @@ export function Trabajos(props: RoyalProps) {
       ]
         .filter((g) => g.items.length)
         .map((g) => {
+          // Progress = share of the budget already paid.
+          const presFase = g.items.reduce(
+            (a, p) => a + (+p.presupuesto || 0),
+            0,
+          );
           const avanceFase = Math.round(
-            g.items.reduce((a, p) => a + p.avance, 0) / g.items.length,
+            pct(
+              g.items.reduce((a, p) => a + totalPagado(p), 0),
+              presFase,
+            ),
           );
           return (
             <div key={g.k} className="grupo-fase">
@@ -236,8 +244,8 @@ export function Trabajos(props: RoyalProps) {
                 <span className="grupo-fase-tit">
                   {g.icono && <SvgIcono k={g.icono} color="#fff" />} {g.nombre}
                   <span className="grupo-fase-meta">
-                    · {g.items.length} trabajo(s) · avance promedio {avanceFase}
-                    %
+                    · {g.items.length} trabajo(s) · avance {avanceFase}% del
+                    presupuesto pagado
                   </span>
                 </span>
               </div>
@@ -263,20 +271,14 @@ export function Trabajos(props: RoyalProps) {
                       </div>
                       <div
                         className="avance-trabajo"
-                        title="Avance del trabajo"
+                        title="Avance: presupuesto pagado"
                       >
                         <span className="meta">Avance</span>
                         <Barra
-                          valor={p.avance}
-                          total={100}
+                          valor={pag}
+                          total={p.presupuesto}
                           label={`Avance de ${p.nombre}`}
-                          tono={
-                            p.avance >= 100
-                              ? "verde"
-                              : p.avance === 0
-                                ? "inicio"
-                                : ""
-                          }
+                          tono={excede ? "alerta" : ""}
                         />
                       </div>
                       <button
@@ -1385,9 +1387,7 @@ export function Fases(props: RoyalProps) {
         const pres = g.T.reduce((a, p) => a + (+p.presupuesto || 0), 0);
         const pag = g.T.reduce((a, p) => a + totalPagado(p), 0);
         const mat = sumaMat(g.M);
-        const avance = g.T.length
-          ? Math.round(g.T.reduce((a, p) => a + p.avance, 0) / g.T.length)
-          : 0;
+        const avance = Math.round(pct(pag, pres));
         const pagos = g.T.flatMap((p) =>
           p.pagos.map((x) => ({ ...x, partida: p })),
         ).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
@@ -1480,7 +1480,7 @@ export function Fases(props: RoyalProps) {
                     <b>{fmt(pag + mat)}</b>
                   </div>
                   <div className="kpi">
-                    <span>Avance físico promedio</span>
+                    <span>Avance (presupuesto pagado)</span>
                     <b>{avance}%</b>
                   </div>
                 </div>

@@ -289,9 +289,6 @@ export function RoyalForm(props: RoyalFormProps) {
   const [inicio, setInicio] = useState(str(record.start_date));
   const [fin, setFin] = useState(str(record.end_date));
   const [presupuesto, setPresupuesto] = useState(dinero(record.budget_cents));
-  const [avance, setAvance] = useState(
-    String(typeof record.progress === "number" ? record.progress : 0),
-  );
   const [contratistas, setContratistas] = useState<string[]>(
     work ? work.assignments.map((a) => a.contractor_id) : [],
   );
@@ -389,9 +386,7 @@ export function RoyalForm(props: RoyalFormProps) {
       } else if (resource === "work_items") {
         if (!nombre.trim()) throw new Error("Escribe el nombre del trabajo.");
         const budget = toCents(presupuesto || "0");
-        const avanceNum = Number(avance);
-        if (!Number.isInteger(avanceNum) || avanceNum < 0 || avanceNum > 100)
-          throw new Error("El avance debe ser un número entero de 0 a 100.");
+
         const prev = new Map(
           work?.assignments.map((a) => [a.contractor_id, a.allocation_cents]),
         );
@@ -402,15 +397,8 @@ export function RoyalForm(props: RoyalFormProps) {
           budget_cents: budget,
           start_date: inicio || null,
           end_date: fin || null,
-          progress: avanceNum,
-          // 100% means finished; any other value cannot stay "completed".
-          status:
-            avanceNum === 100
-              ? "completed"
-              : work?.status === "completed" ||
-                  (avanceNum > 0 && (work?.status || "pending") === "pending")
-                ? "in_progress"
-                : work?.status || "pending",
+          status: work?.status || "pending",
+          progress: work?.progress ?? 0,
           space_ids: espacios,
           assignments: contratistas.map((c) => ({
             contractor_id: c,
@@ -666,25 +654,6 @@ export function RoyalForm(props: RoyalFormProps) {
             value={presupuesto}
             onChange={(e) => setPresupuesto(e.target.value)}
             placeholder="0.00"
-          />
-        </Campo>
-        <Campo label={`Avance del trabajo: ${avance || 0}%`}>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={5}
-            value={Number(avance) || 0}
-            onChange={(e) => setAvance(e.target.value)}
-          />
-          <input
-            inputMode="numeric"
-            value={avance}
-            onChange={(e) =>
-              setAvance(e.target.value.replace(/\D/g, "").slice(0, 3))
-            }
-            aria-label="Avance del trabajo en porcentaje"
-            style={{ maxWidth: 90 }}
           />
         </Campo>
       </>,
