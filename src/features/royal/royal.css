@@ -166,3 +166,26 @@
 .royal .fase-analisis{margin-bottom:28px}
 .royal .fase-analisis td .progreso{height:14px;margin:4px 0 0}
 .royal .fase-analisis td .progreso b{font-size:.65rem}
+.royal .archivo-abrir{display:flex;flex-direction:column;gap:4px;color:inherit;text-decoration:none}
+.royal .archivo-acciones{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.royal .grid-iconos{max-height:280px;overflow:auto;padding-right:4px}
+.royal .paleta{max-height:170px;overflow:auto;padding:2px}
+.royal .plegable{margin-bottom:10px}
+.royal .plegable-cab{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap}
+.royal .plegable-cab h2,.royal .plegable-cab h3{margin:0}
+.royal .plegable-tit{display:flex;align-items:center;gap:8px;min-width:0}
+.royal .plegable-btn{white-space:nowrap}
+.royal .plegable-cuerpo{margin-top:12px}
+.royal .mov-dia{margin-bottom:14px}
+.royal .mov-dia h3{margin:0 0 6px;font-size:1rem;text-transform:capitalize}
+.royal .mov-item{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--line);font-size:.9rem}
+.royal .mov-item:last-child{border-bottom:0}
+.royal .mov-hora{color:var(--mut);font-size:.8rem;min-width:52px}
+.royal .mov-accion{font-size:.72rem;padding:1px 7px;border-radius:10px;font-weight:700;white-space:nowrap}
+.royal .semana-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.royal .fase-cron{margin-bottom:22px}
+.royal .fase-cron-cab{color:#fff;border-radius:10px 10px 0 0;padding:8px 12px;font-weight:700;display:flex;align-items:center;gap:8px}
+.royal .fase-cron-filtros{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;background:#fff;border:1px solid var(--line);border-top:0;padding:10px 12px;margin-bottom:8px;border-radius:0 0 10px 10px}
+.royal .fase-cron-filtros .campo{display:flex;flex-direction:column;gap:3px;min-width:150px}
+.royal .fase-cron-filtros .campo span{font-size:.8rem;color:var(--mut)}
+.royal .fase-cron-filtros select{min-width:0;width:100%}

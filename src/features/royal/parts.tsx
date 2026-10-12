@@ -43,6 +43,92 @@ export const ICONOS: Record<string, string> = {
     '<path d="M4 10h16v4H4z"/><path d="M6 14v6M18 14v6"/><path d="M4 10V6h16v4"/>',
   puerta:
     '<path d="M6 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17"/><path d="M3 21h18"/><path d="M14 12h.01"/>',
+  grua: '<path d="M4 21V4h2v17"/><path d="M6 5h14l-3 4H6"/><path d="M16 9v5"/><rect x="14" y="14" width="4" height="3"/><path d="M2 21h8"/>',
+  ladrillo:
+    '<rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 10h18M3 15h18M9 5v5M15 10v5M9 15v4"/>',
+  casco:
+    '<path d="M4 16a8 8 0 0 1 16 0"/><path d="M2 16h20v3H2z"/><path d="M10 8V5h4v3"/>',
+  escalera: '<path d="M7 3v18M17 3v18M7 7h10M7 11h10M7 15h10M7 19h10"/>',
+  taladro:
+    '<path d="M3 7h11v6H3z"/><path d="M14 9h4l3 1-3 1h-4"/><path d="M6 13l-1 7h4l1-7"/>',
+  sierra:
+    '<path d="M3 16l13-9 3 3-13 9z"/><path d="M6 17l1 2M9 15l1 2M12 13l1 2M15 11l1 2"/>',
+  pala: '<path d="M14 3l7 7"/><path d="M17.5 6.5L9 15"/><path d="M9 15l-4 1-2 5 5-2 1-4z"/>',
+  martillo: '<path d="M14 4l6 6-3 3-6-6z"/><path d="M11 7L3 15l3 3 8-8"/>',
+  llave:
+    '<path d="M15 4a4 4 0 0 0-4 5L4 16l4 4 7-7a4 4 0 0 0 5-4l-3 1-2-2 1-3z"/>',
+  nivel:
+    '<rect x="2" y="9" width="20" height="6" rx="1"/><circle cx="12" cy="12" r="1.5"/><path d="M6 9v6M18 9v6"/>',
+  metro:
+    '<circle cx="10" cy="12" r="7"/><circle cx="10" cy="12" r="2"/><path d="M17 15h5v3h-5"/>',
+  carretilla:
+    '<path d="M3 8h12l-2 7H6z"/><circle cx="17" cy="18" r="2"/><path d="M13 15l4 3M15 8l5-3"/>',
+  andamio:
+    '<path d="M4 3v18M20 3v18M4 7h16M4 12h16M4 17h16M4 7l16 5M4 12l16 5"/>',
+  planos:
+    '<path d="M3 5l6-2 6 2 6-2v16l-6 2-6-2-6 2z"/><path d="M9 3v16M15 5v16"/>',
+  cemento: '<path d="M5 4h14l1 16H4z"/><path d="M8 9h8M8 13h8"/>',
+  mezcladora:
+    '<path d="M6 6l10-2 2 9-10 2z"/><circle cx="8" cy="19" r="2"/><path d="M8 17v-2M16 13l3 6"/>',
+  ducha:
+    '<path d="M4 20V6a3 3 0 0 1 6 0"/><path d="M8 8h6l-3-3"/><path d="M10 12v1M13 12v1M16 12v1M10 16v1M13 16v1M16 16v1"/>',
+  inodoro:
+    '<path d="M6 4h6v7H6z"/><path d="M4 11h14a5 5 0 0 1-5 5H9"/><path d="M9 16l-1 4h6l-1-4"/>',
+  lavamanos:
+    '<path d="M3 11h18a6 6 0 0 1-6 6H9a6 6 0 0 1-6-6z"/><path d="M12 11V6h3"/><path d="M10 17v4h4v-4"/>',
+  cama: '<path d="M3 19v-8h18v8"/><path d="M3 15h18"/><path d="M5 11V7h6v4"/>',
+  closet:
+    '<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18M10 12h0M14 12h0"/>',
+  balcon:
+    '<path d="M3 13h18M5 13v7M9 13v7M15 13v7M19 13v7M3 20h18"/><path d="M7 13V5h10v8"/>',
+  piscina:
+    '<path d="M2 18c2 1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0"/><path d="M8 15V5a2 2 0 0 1 4 0M14 15V5a2 2 0 0 1 4 0M8 9h10"/>',
+  gimnasio: '<path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"/>',
+  ascensor:
+    '<rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 9l3-3 3 3M9 15l3 3 3-3"/>',
+  lobby:
+    '<path d="M3 21V9l9-6 9 6v12"/><path d="M9 21v-6h6v6"/><path d="M3 21h18"/>',
+  escalones: '<path d="M3 20h5v-4h4v-4h4V8h5"/>',
+  deposito: '<path d="M3 9l9-5 9 5v11H3z"/><path d="M7 20v-7h10v7M7 16h10"/>',
+  maquinas:
+    '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/>',
+  azotea:
+    '<path d="M3 10h18"/><path d="M5 10v10h14V10"/><path d="M8 10V6h8v4"/><path d="M12 3v3"/>',
+  ventana:
+    '<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M12 4v16M4 12h16"/>',
+  piso: '<path d="M3 15l9-5 9 5-9 5z"/><path d="M7.5 12.5l9 5M16.5 12.5l-9 5"/>',
+  pared:
+    '<rect x="3" y="4" width="18" height="16"/><path d="M3 9h18M3 14h18M9 4v5M15 9v5M9 14v6"/>',
+  cocineta:
+    '<rect x="4" y="3" width="16" height="18" rx="1"/><circle cx="9" cy="8" r="2"/><circle cx="15" cy="8" r="2"/><path d="M4 13h16"/>',
+  madera:
+    '<rect x="3" y="7" width="18" height="10" rx="1"/><circle cx="7" cy="12" r="2"/><path d="M11 10h8M11 14h6"/>',
+  vidrio:
+    '<rect x="5" y="3" width="14" height="18" rx="1"/><path d="M8 8l3-3M8 13l7-7M11 16l5-5"/>',
+  ceramica:
+    '<rect x="3" y="3" width="8" height="8"/><rect x="13" y="3" width="8" height="8"/><rect x="3" y="13" width="8" height="8"/><rect x="13" y="13" width="8" height="8"/>',
+  tuberia:
+    '<path d="M3 8h8a3 3 0 0 1 3 3v10"/><path d="M3 12h6a1 1 0 0 1 1 1v8"/><path d="M3 6v8M10 21h6"/>',
+  cable:
+    '<path d="M4 20c0-6 4-6 6-10s4-6 10-6"/><path d="M18 2v4h4"/><circle cx="4" cy="20" r="1.5"/>',
+  enchufe:
+    '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9v3M15 9v3M10 16h4"/>',
+  interruptor:
+    '<rect x="6" y="3" width="12" height="18" rx="2"/><rect x="10" y="7" width="4" height="10" rx="1"/>',
+  tornillo:
+    '<path d="M8 3h8l-1 4H9z"/><path d="M12 7v14M10 10l4 1M10 13l4 1M10 16l4 1"/>',
+  arena:
+    '<path d="M2 20l6-8 4 4 3-3 7 7z"/><circle cx="7" cy="18" r=".5"/><circle cx="12" cy="18" r=".5"/><circle cx="16" cy="18" r=".5"/>',
+  cubeta:
+    '<path d="M5 8h14l-2 12H7z"/><path d="M5 8a7 4 0 0 1 14 0"/><path d="M9 12v3"/>',
+  saco: '<path d="M7 4h10l-1 3 2 13H6L8 7z"/><path d="M8 7h8"/>',
+  malla: '<path d="M3 3l18 18M9 3l12 12M3 9l12 12M3 15l6 6M15 3l6 6"/>',
+  aluminio: '<path d="M5 4h4v16H5zM15 4h4v16h-4z"/><path d="M9 8h6M9 16h6"/>',
+  yeso: '<rect x="3" y="5" width="18" height="14"/><path d="M3 12h18"/><circle cx="7" cy="8.5" r=".6"/><circle cx="17" cy="15.5" r=".6"/>',
+  impermeable:
+    '<path d="M12 3s-5 6-5 10a5 5 0 0 0 10 0c0-4-5-10-5-10z"/><path d="M4 21h16"/>',
+  silicon:
+    '<path d="M8 3h8v12H8z"/><path d="M10 15l2 6 2-6"/><path d="M8 7h8"/>',
 };
 export const NOMBRES: Record<string, string> = {
   casa: "Casa",
@@ -70,6 +156,56 @@ export const NOMBRES: Record<string, string> = {
   pintar: "Pintura",
   mueble: "Muebles",
   puerta: "Puertas y ventanas",
+  grua: "Grúa",
+  ladrillo: "Ladrillos",
+  casco: "Casco de obra",
+  escalera: "Escalera",
+  taladro: "Taladro",
+  sierra: "Sierra",
+  pala: "Pala",
+  martillo: "Martillo",
+  llave: "Llave inglesa",
+  nivel: "Nivel",
+  metro: "Cinta métrica",
+  carretilla: "Carretilla",
+  andamio: "Andamio",
+  planos: "Planos",
+  cemento: "Cemento",
+  mezcladora: "Mezcladora",
+  ducha: "Ducha",
+  inodoro: "Inodoro",
+  lavamanos: "Lavamanos",
+  cama: "Cama",
+  closet: "Clóset",
+  balcon: "Balcón",
+  piscina: "Piscina",
+  gimnasio: "Gimnasio",
+  ascensor: "Ascensor",
+  lobby: "Lobby / recepción",
+  escalones: "Escaleras",
+  deposito: "Depósito",
+  maquinas: "Cuarto de máquinas",
+  azotea: "Azotea",
+  ventana: "Ventana",
+  piso: "Piso",
+  pared: "Pared",
+  cocineta: "Cocineta",
+  madera: "Madera",
+  vidrio: "Vidrio",
+  ceramica: "Cerámica / baldosa",
+  tuberia: "Tubería",
+  cable: "Cable",
+  enchufe: "Enchufe",
+  interruptor: "Interruptor",
+  tornillo: "Tornillos",
+  arena: "Arena / grava",
+  cubeta: "Cubeta de pintura",
+  saco: "Saco",
+  malla: "Malla / varilla",
+  aluminio: "Perfiles de aluminio",
+  yeso: "Yeso / gypsum",
+  impermeable: "Impermeabilizante",
+  silicon: "Silicón / sellador",
 };
 const ICONOS_TIT: Record<string, string> = {
   grafica: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
@@ -110,6 +246,46 @@ export const PALETA = [
   "#c05621",
   "#b83280",
   "#0e7490",
+  "#e53935",
+  "#d81b60",
+  "#8e24aa",
+  "#5e35b1",
+  "#3949ab",
+  "#1e88e5",
+  "#039be5",
+  "#00acc1",
+  "#00897b",
+  "#43a047",
+  "#7cb342",
+  "#c0ca33",
+  "#f9a825",
+  "#ffb300",
+  "#fb8c00",
+  "#f4511e",
+  "#ff1744",
+  "#f50057",
+  "#d500f9",
+  "#651fff",
+  "#2979ff",
+  "#00b0ff",
+  "#00b8d4",
+  "#1de9b6",
+  "#00c853",
+  "#64dd17",
+  "#ffd600",
+  "#ff9100",
+  "#ff3d00",
+  "#3e2723",
+  "#4e342e",
+  "#5d4037",
+  "#6d4c41",
+  "#795548",
+  "#8d6e63",
+  "#a1887f",
+  "#8b5a2b",
+  "#a0522d",
+  "#c68642",
+  "#d2a679",
 ];
 
 function iconoTitulo(t: string) {

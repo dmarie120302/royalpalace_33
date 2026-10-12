@@ -16,9 +16,10 @@ import {
 } from "@/features/workspace/attachments-modal";
 import { ProjectsView } from "@/features/workspace/projects-view";
 import { buildRoyal, fmt, pct, totalPagado } from "@/features/royal/model";
+import { Archivos } from "@/features/royal/archivos";
+import { Movimientos } from "@/features/royal/movimientos";
 import {
   Analisis,
-  Archivos,
   Contratistas,
   Cronograma,
   Espacios,
@@ -39,7 +40,8 @@ type View =
   | "materiales"
   | "espacios"
   | "contratistas"
-  | "archivos";
+  | "archivos"
+  | "movimientos";
 // Same tabs, order and buttons as ph33-royal-palace-v14.html.
 const navigation: { id: View; label: string }[] = [
   { id: "trabajos", label: "Trabajos" },
@@ -50,6 +52,7 @@ const navigation: { id: View; label: string }[] = [
   { id: "espacios", label: "Espacios" },
   { id: "contratistas", label: "Contratistas" },
   { id: "archivos", label: "Archivos" },
+  { id: "movimientos", label: "Movimientos" },
 ];
 const newButtons: Record<View, { label: string; resource: Resource }[]> = {
   trabajos: [{ label: "+ Nuevo trabajo", resource: "work_items" }],
@@ -63,6 +66,7 @@ const newButtons: Record<View, { label: string; resource: Resource }[]> = {
   espacios: [{ label: "+ Nuevo espacio", resource: "spaces" }],
   contratistas: [{ label: "+ Nuevo contratista", resource: "contractors" }],
   archivos: [],
+  movimientos: [],
 };
 interface ArchiveTarget {
   resource: Resource;
@@ -229,7 +233,8 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
   const pag = royal
     ? royal.partidas.reduce((a, p) => a + totalPagado(p), 0)
     : 0;
-  const royalProps = props && royal ? { ...props, r: royal } : null;
+  const royalProps =
+    props && royal ? { ...props, r: royal, refresh, notify } : null;
   return (
     <div className="app-shell">
       <header className="app-header no-print">
@@ -415,8 +420,10 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
                 <Espacios {...royalProps} />
               ) : view === "contratistas" ? (
                 <Contratistas {...royalProps} />
-              ) : (
+              ) : view === "archivos" ? (
                 <Archivos {...royalProps} />
+              ) : (
+                <Movimientos {...royalProps} />
               )}
             </div>
           )

@@ -4,6 +4,7 @@ import type {
   Assignment,
   AuditEvent,
   Attachment,
+  Link,
   Catalog,
   Contractor,
   MaterialPurchase,
@@ -44,6 +45,7 @@ export async function loadWorkspace(): Promise<Workspace> {
     "material_spaces",
     "material_phases",
     "attachments",
+    "links",
     "audit_events",
   ] as const;
   // The API caps each response. Read all authorized pages so financial totals
@@ -62,8 +64,12 @@ export async function loadWorkspace(): Promise<Workspace> {
         return db
           .from(table)
           .select("*")
+          .gte(
+            "created_at",
+            new Date(Date.now() - 120 * 86400000).toISOString(),
+          )
           .order("created_at", { ascending: false })
-          .limit(100);
+          .limit(3000);
       const records = [];
       const pageSize = 1000;
       for (let offset = 0; ; offset += pageSize) {
@@ -157,6 +163,7 @@ export async function loadWorkspace(): Promise<Workspace> {
     payments: rows.payments as Workspace["payments"],
     materials,
     attachments: rows.attachments.filter((x) => !x.archived_at) as Attachment[],
+    links: rows.links.filter((x) => !x.archived_at) as Link[],
     audit: rows.audit_events as AuditEvent[],
   };
 }

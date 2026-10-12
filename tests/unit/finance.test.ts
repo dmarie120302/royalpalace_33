@@ -104,6 +104,7 @@ function workspace(overrides: Partial<Workspace> = {}): Workspace {
     payments: [],
     materials: [],
     attachments: [],
+    links: [],
     audit: [],
     ...overrides,
   };

@@ -94,6 +94,16 @@ export interface Attachment {
   created_at: string;
   archived_at: string | null;
 }
+export interface Link {
+  id: string;
+  project_id: string;
+  payment_id: string | null;
+  material_id: string | null;
+  name: string;
+  url: string;
+  created_at: string;
+  archived_at: string | null;
+}
 export interface AuditEvent {
   id: string;
   project_id: string;
@@ -115,6 +125,7 @@ export interface Workspace {
   payments: Payment[];
   materials: MaterialPurchase[];
   attachments: Attachment[];
+  links: Link[];
   audit: AuditEvent[];
 }
 export type MutationInput = Record<string, unknown>;

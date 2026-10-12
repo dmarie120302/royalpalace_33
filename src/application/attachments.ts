@@ -108,3 +108,73 @@ export async function removeAttachment(id: string) {
     .single();
   dbError(update.error);
 }
+async function adminAttachment(id: string) {
+  const { db } = await authenticatedClient();
+  const record = await db
+    .from("attachments")
+    .select("id,project_id,payment_id,material_id,path")
+    .eq("id", id)
+    .is("archived_at", null)
+    .maybeSingle();
+  dbError(record.error);
+  if (!record.data) throw new AppError("No se encontró el archivo.", 404);
+  await requireAdmin(record.data.project_id);
+  return { db, record: record.data };
+}
+export async function renameAttachment(id: string, name: string) {
+  const clean = z
+    .string()
+    .trim()
+    .min(1, "Escribe un nombre.")
+    .max(160)
+    .parse(name);
+  const { db } = await adminAttachment(id);
+  const update = await db
+    .from("attachments")
+    .update({ name: clean })
+    .eq("id", id)
+    .select("id")
+    .single();
+  dbError(update.error);
+}
+/** Replaces the content of a file; every view that shows it uses the new one. */
+export async function replaceAttachment(id: string, file: unknown) {
+  const { db, record } = await adminAttachment(id);
+  if (
+    !(file instanceof File) ||
+    !file.size ||
+    file.size > 10485760 ||
+    !Object.hasOwn(formats, file.type)
+  )
+    throw new AppError("Sube una imagen JPG, PNG, WebP o PDF de hasta 10 MB.");
+  if (
+    !validHeader(
+      file.type,
+      new Uint8Array(await file.slice(0, 12).arrayBuffer()),
+    )
+  )
+    throw new AppError("El contenido del archivo no coincide con su formato.");
+  const type = record.payment_id ? "payment" : "material";
+  const entityId = record.payment_id || record.material_id;
+  const path = `${record.project_id}/${type}/${entityId}/${crypto.randomUUID()}.${formats[file.type as keyof typeof formats]}`;
+  const upload = await db.storage
+    .from("receipts")
+    .upload(path, file, { contentType: file.type, upsert: false });
+  dbError(upload.error);
+  const update = await db
+    .from("attachments")
+    .update({
+      path,
+      name: file.name.slice(0, 160),
+      mime_type: file.type,
+      size: file.size,
+    })
+    .eq("id", id)
+    .select("id")
+    .single();
+  if (update.error) {
+    await db.storage.from("receipts").remove([path]);
+    dbError(update.error);
+  }
+  await db.storage.from("receipts").remove([record.path]);
+}

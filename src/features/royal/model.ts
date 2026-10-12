@@ -31,6 +31,14 @@ export interface Archivo {
   pagoId: string | null;
   materialId: string | null;
 }
+export interface Enlace {
+  id: string;
+  nombre: string;
+  url: string;
+  fecha: string;
+  pagoId: string | null;
+  materialId: string | null;
+}
 export interface Pago {
   id: string;
   fecha: string;
@@ -38,6 +46,7 @@ export interface Pago {
   monto: number;
   comprobantes: number;
   archivos: Archivo[];
+  contratistaId: string;
 }
 export interface Partida {
   id: string;
@@ -76,6 +85,7 @@ export interface Royal {
   partidas: Partida[];
   materiales: Material[];
   archivos: Archivo[];
+  enlaces: Enlace[];
 }
 
 // The database has no icon column; pick the HTML icon from the name.
@@ -174,11 +184,22 @@ export function buildRoyal(data: Workspace, project: Project): Royal {
           fecha: p.date,
           concepto: p.description,
           monto: dollars(p.amount_cents),
+          contratistaId: p.contractor_id,
           comprobantes: archivosDe("pagoId", p.id).length,
           archivos: archivosDe("pagoId", p.id),
         })),
     })),
     archivos,
+    enlaces: (data.links || [])
+      .filter((l) => l.project_id === project.id && !l.archived_at)
+      .map((l) => ({
+        id: l.id,
+        nombre: l.name,
+        url: l.url,
+        fecha: l.created_at.slice(0, 10),
+        pagoId: l.payment_id,
+        materialId: l.material_id,
+      })),
     materiales: mine(data.materials).map((m) => ({
       id: m.id,
       fecha: m.date,

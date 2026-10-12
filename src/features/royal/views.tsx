@@ -40,7 +40,11 @@ import {
   Titulo,
 } from "./parts";
 
-export type RoyalProps = ViewProps & { r: Royal };
+export type RoyalProps = ViewProps & {
+  r: Royal;
+  refresh: () => Promise<void>;
+  notify: (message: string, error?: boolean) => void;
+};
 // Contractor chips in lists show a color dot, as in the HTML.
 const sinLetra = (list: Contratista[]) =>
   list.map((c) => ({ ...c, letra: undefined }));
@@ -79,97 +83,6 @@ function Miniatura({
         <span className="meta"> +{archivos.length - 1}</span>
       )}
     </button>
-  );
-}
-
-/* ---------- Archivos ---------- */
-export function Archivos(props: RoyalProps) {
-  const { r } = props;
-  const [tipo, setTipo] = useState("todos");
-  const pagos = r.partidas.flatMap((p) =>
-    p.pagos.map((x) => ({ ...x, partida: p })),
-  );
-  const filas = r.archivos
-    .map((a) => {
-      const pago = pagos.find((x) => x.id === a.pagoId);
-      const mat = r.materiales.find((m) => m.id === a.materialId);
-      return {
-        ...a,
-        origen: pago ? "Pago" : "Material",
-        detalle: pago
-          ? `${pago.partida.nombre} · ${pago.concepto} · ${fmt(pago.monto)}`
-          : mat
-            ? `${mat.tienda} · ${mat.descripcion} · ${fmt(mat.monto)}`
-            : "—",
-        fechaMov: pago?.fecha || mat?.fecha || "",
-      };
-    })
-    .filter((a) => a.detalle !== "—")
-    .filter(
-      (a) =>
-        tipo === "todos" ||
-        (tipo === "imagenes" ? a.tipo.startsWith("image/") : a.origen === tipo),
-    )
-    .sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
-  const kb = (n: number) =>
-    n >= 1048576
-      ? `${(n / 1048576).toFixed(1)} MB`
-      : `${Math.max(1, Math.round(n / 1024))} KB`;
-  return (
-    <>
-      <div className="filtros no-imprimir">
-        <div className="campo">
-          <span>Mostrar</span>
-          <select
-            aria-label="Mostrar"
-            value={tipo}
-            onChange={(e) => setTipo(e.target.value)}
-          >
-            <option value="todos">Todos los archivos</option>
-            <option value="Pago">Comprobantes de pagos</option>
-            <option value="Material">Fotos de materiales</option>
-            <option value="imagenes">Solo imágenes</option>
-          </select>
-        </div>
-      </div>
-      <p className="resumen-filtro">
-        <b>{filas.length}</b> archivo(s) subido(s)
-      </p>
-      {filas.length ? (
-        <div className="grid-archivos">
-          {filas.map((a) => (
-            <a
-              key={a.id}
-              className="card archivo"
-              href={`/api/attachments/${a.id}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {a.tipo.startsWith("image/") ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={`/api/attachments/${a.id}`}
-                  alt={a.nombre}
-                  loading="lazy"
-                />
-              ) : (
-                <span className="archivo-doc">📄 PDF</span>
-              )}
-              <b className="archivo-nombre">{a.nombre}</b>
-              <span className="meta">
-                {a.origen} · {a.fechaMov}
-              </span>
-              <span className="meta">{a.detalle}</span>
-              <span className="meta">
-                Subido {a.fecha} · {kb(a.tamano)}
-              </span>
-            </a>
-          ))}
-        </div>
-      ) : (
-        <p className="meta">Aún no hay archivos subidos.</p>
-      )}
-    </>
   );
 }
 
@@ -269,14 +182,31 @@ function DetallePagos({
 
 export function Trabajos(props: RoyalProps) {
   const { r, admin } = props;
+  const [abiertos, setAbiertos] = useState<string[]>([]);
+  const alternar = (id: string) =>
+    setAbiertos((v) =>
+      v.includes(id) ? v.filter((x) => x !== id) : [...v, id],
+    );
   if (!r.partidas.length)
     return (
       <p className="meta">
         Aún no hay trabajos. Crea uno con &quot;+ Nuevo trabajo&quot;.
       </p>
     );
+  const todos = abiertos.length === r.partidas.length;
   return (
     <>
+      <div
+        className="fila no-imprimir"
+        style={{ justifyContent: "flex-end", marginBottom: 10 }}
+      >
+        <button
+          className="sec"
+          onClick={() => setAbiertos(todos ? [] : r.partidas.map((p) => p.id))}
+        >
+          {todos ? "Ocultar todos los detalles" : "Ver todos los detalles"}
+        </button>
+      </div>
       {r.partidas.map((p) => {
         const pag = totalPagado(p);
         const excede = p.presupuesto > 0 && pag > p.presupuesto;
@@ -284,87 +214,114 @@ export function Trabajos(props: RoyalProps) {
         const est = estadoTrabajo(p);
         const tieneEtiquetas =
           !!f || p.espacioIds.length || p.contratistaIds.length;
+        const abierto = abiertos.includes(p.id);
         return (
-          <section className="card" key={p.id}>
-            <div className="fila">
-              <div>
+          <section className="card plegable" key={p.id}>
+            <div className="plegable-cab">
+              <div className="plegable-tit">
                 <h2>{p.nombre}</h2>
-                <div>
-                  {tieneEtiquetas ? (
-                    <>
-                      {f && <Chip it={f} />}
-                      <Chips list={r.espacios} ids={p.espacioIds} />
-                      <Chips
-                        list={sinLetra(r.contratistas)}
-                        ids={p.contratistaIds}
-                      />
-                    </>
-                  ) : (
-                    <span className="meta">
-                      Sin fase, espacio ni contratista
+                <span
+                  className="estado"
+                  style={{ color: est.c, fontSize: ".85rem" }}
+                >
+                  {est.t}
+                </span>
+              </div>
+              <button
+                className="sec plegable-btn"
+                aria-expanded={abierto}
+                onClick={() => alternar(p.id)}
+              >
+                {abierto ? "Ocultar ▴" : "Ver detalles ▾"}
+              </button>
+            </div>
+            {abierto && (
+              <div className="plegable-cuerpo">
+                <div className="fila">
+                  <div>
+                    <div>
+                      {tieneEtiquetas ? (
+                        <>
+                          {f && <Chip it={f} />}
+                          <Chips list={r.espacios} ids={p.espacioIds} />
+                          <Chips
+                            list={sinLetra(r.contratistas)}
+                            ids={p.contratistaIds}
+                          />
+                        </>
+                      ) : (
+                        <span className="meta">
+                          Sin fase, espacio ni contratista
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="meta" style={{ textAlign: "right" }}>
+                    Presupuesto <b>{fmt(p.presupuesto)}</b>
+                    <br />
+                    Pagado <b>{fmt(pag)}</b> · Pendiente{" "}
+                    <b>{fmt(p.presupuesto - pag)}</b>
+                  </div>
+                </div>
+                <div className="fila" style={{ marginTop: 4 }}>
+                  <span className="meta">
+                    {p.fechaInicio
+                      ? `📅 ${fechaCorta(aDia(p.fechaInicio))}${p.fechaFin ? " – " + fechaCorta(aDia(p.fechaFin)) : ""}`
+                      : "Sin fechas"}
+                  </span>
+                  <span
+                    className="estado"
+                    style={{ color: est.c, borderColor: est.c, margin: 0 }}
+                  >
+                    {est.t}
+                  </span>
+                </div>
+                <Barra
+                  valor={pag}
+                  total={p.presupuesto}
+                  tono={excede ? "alerta" : ""}
+                />
+                <div className="fila">
+                  <span className="meta">
+                    {p.pagos.length} pago(s)
+                    {excede && (
+                      <>
+                        {" · "}
+                        <b style={{ color: "var(--warn)" }}>
+                          excede el presupuesto
+                        </b>
+                      </>
+                    )}
+                  </span>
+                  {admin && (
+                    <span style={{ display: "flex", gap: 6 }}>
+                      <button
+                        className="sec"
+                        aria-label={`Editar ${p.nombre}`}
+                        onClick={() =>
+                          props.edit(
+                            "work_items",
+                            record(props.data.works, p.id),
+                          )
+                        }
+                      >
+                        Editar
+                      </button>
+                      <button
+                        className="peligro"
+                        aria-label={`Archivar ${p.nombre}`}
+                        onClick={() =>
+                          props.archive("work_items", p.id, p.nombre)
+                        }
+                      >
+                        Eliminar
+                      </button>
                     </span>
                   )}
                 </div>
+                <DetallePagos p={p} admin={admin} props={props} />
               </div>
-              <div className="meta" style={{ textAlign: "right" }}>
-                Presupuesto <b>{fmt(p.presupuesto)}</b>
-                <br />
-                Pagado <b>{fmt(pag)}</b> · Pendiente{" "}
-                <b>{fmt(p.presupuesto - pag)}</b>
-              </div>
-            </div>
-            <div className="fila" style={{ marginTop: 4 }}>
-              <span className="meta">
-                {p.fechaInicio
-                  ? `📅 ${fechaCorta(aDia(p.fechaInicio))}${p.fechaFin ? " – " + fechaCorta(aDia(p.fechaFin)) : ""}`
-                  : "Sin fechas"}
-              </span>
-              <span
-                className="estado"
-                style={{ color: est.c, borderColor: est.c, margin: 0 }}
-              >
-                {est.t}
-              </span>
-            </div>
-            <Barra
-              valor={pag}
-              total={p.presupuesto}
-              tono={excede ? "alerta" : ""}
-            />
-            <div className="fila">
-              <span className="meta">
-                {p.pagos.length} pago(s)
-                {excede && (
-                  <>
-                    {" · "}
-                    <b style={{ color: "var(--warn)" }}>
-                      excede el presupuesto
-                    </b>
-                  </>
-                )}
-              </span>
-              {admin && (
-                <span style={{ display: "flex", gap: 6 }}>
-                  <button
-                    className="sec"
-                    aria-label={`Editar ${p.nombre}`}
-                    onClick={() =>
-                      props.edit("work_items", record(props.data.works, p.id))
-                    }
-                  >
-                    Editar
-                  </button>
-                  <button
-                    className="peligro"
-                    aria-label={`Archivar ${p.nombre}`}
-                    onClick={() => props.archive("work_items", p.id, p.nombre)}
-                  >
-                    Eliminar
-                  </button>
-                </span>
-              )}
-            </div>
-            <DetallePagos p={p} admin={admin} props={props} />
+            )}
           </section>
         );
       })}
@@ -1133,7 +1090,11 @@ function TablaMateriales({
 
 export function Fases(props: RoyalProps) {
   const { r } = props;
-  const [sel, setSel] = useState("todas");
+  const [abiertos, setAbiertos] = useState<string[]>([]);
+  const alternar = (id: string) =>
+    setAbiertos((v) =>
+      v.includes(id) ? v.filter((x) => x !== id) : [...v, id],
+    );
   const enFase = (m: Material, id: string | null) =>
     id === null ? !m.faseIds.length : m.faseIds.includes(id);
   const grupos = [
@@ -1158,108 +1119,41 @@ export function Fases(props: RoyalProps) {
       M: r.materiales.filter((m) => enFase(m, g.id)),
     }))
     .filter((g) => g.id !== null || g.T.length || g.M.length);
-  const visibles = grupos.filter(
-    (g) => sel === "todas" || (g.id || "sin") === sel,
-  );
-  const tarjetas = r.fases.length ? (
-    <div className="grid-esp">
-      {grupos
-        .filter((g) => g.id)
-        .map((g) => {
-          const f = r.fases.find((x) => x.id === g.id)!;
-          const total =
-            g.T.reduce((a, p) => a + totalPagado(p), 0) + sumaMat(g.M);
-          return (
-            <div
-              className={`card esp-card${sel === g.id ? " fase-sel" : ""}`}
-              key={f.id}
-              style={{ borderTop: `5px solid ${f.color}` }}
-            >
-              <div className="fila">
-                <span
-                  className="ico big"
-                  style={{ background: `${f.color}22` }}
-                >
-                  <SvgIcono k={f.icono} color={f.color} />
-                </span>
-                <Acciones
-                  props={props}
-                  resource="phases"
-                  list={props.data.phases}
-                  it={f}
-                />
-              </div>
-              <h2 style={{ marginTop: 8 }}>{f.nombre}</h2>
-              <div className="meta">
-                {g.T.length} trabajo(s) · {g.M.length} material(es)
-              </div>
-              <div className="meta">
-                Gasto real <b>{fmt(total)}</b>
-              </div>
-              <div
-                style={{
-                  marginTop: 8,
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 4,
-                }}
-              >
-                {f.espacioIds.length ? (
-                  <Chips list={r.espacios} ids={f.espacioIds} />
-                ) : (
-                  <span className="meta">Sin espacios asignados</span>
-                )}
-              </div>
-              <button
-                className="sec mini"
-                style={{ marginTop: 8 }}
-                onClick={() => setSel(sel === f.id ? "todas" : f.id)}
-              >
-                {sel === f.id ? "Ver todas las fases" : "Analizar esta fase"}
-              </button>
-            </div>
-          );
-        })}
-    </div>
-  ) : (
-    <p className="meta">
-      Aún no hay fases. Crea una con &quot;+ Nueva fase&quot; (ej. Obra gruesa,
-      Acabados, Pintura).
-    </p>
-  );
-  if (!r.partidas.length && !r.materiales.length) return tarjetas;
+  if (!grupos.length)
+    return (
+      <p className="meta">
+        Aún no hay fases. Crea una con &quot;+ Nueva fase&quot; (ej. Obra
+        gruesa, Acabados, Pintura).
+      </p>
+    );
+  const llave = (g: { id: string | null }) => g.id || "sin";
+  const todas = abiertos.length === grupos.length;
   let n = 0;
   return (
     <>
-      {tarjetas}
       <div className="filtros no-imprimir">
-        <div className="campo">
-          <span>Fase a analizar</span>
-          <select
-            aria-label="Fase a analizar"
-            value={sel}
-            onChange={(e) => setSel(e.target.value)}
-          >
-            <option value="todas">Todas, una por una</option>
-            {grupos.map((g) => (
-              <option key={g.id || "sin"} value={g.id || "sin"}>
-                {g.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
+        <button
+          className="sec"
+          onClick={() => setAbiertos(todas ? [] : grupos.map(llave))}
+        >
+          {todas ? "Ocultar todas las fases" : "Ver todas las fases"}
+        </button>
         <BotonesReporte
           props={props}
-          T={visibles.flatMap((g) => g.T)}
-          M={[...new Set(visibles.flatMap((g) => g.M))]}
-          sub={
-            sel === "todas"
-              ? "Todas las fases"
-              : `Fase: ${visibles[0]?.nombre || ""}`
-          }
+          T={grupos
+            .filter((g) => abiertos.includes(llave(g)))
+            .flatMap((g) => g.T)}
+          M={[
+            ...new Set(
+              grupos
+                .filter((g) => abiertos.includes(llave(g)))
+                .flatMap((g) => g.M),
+            ),
+          ]}
+          sub="Fases desplegadas"
         />
       </div>
-      {visibles.map((g) => {
+      {grupos.map((g, idx) => {
         const pres = g.T.reduce((a, p) => a + (+p.presupuesto || 0), 0);
         const pag = g.T.reduce((a, p) => a + totalPagado(p), 0);
         const mat = sumaMat(g.M);
@@ -1283,189 +1177,231 @@ export function Fases(props: RoyalProps) {
           .sort()
           .slice(-1)[0];
         return (
-          <section key={g.id || "sin"} className="fase-analisis">
-            <div className="fase-bloque" style={{ borderColor: g.color }}>
-              <h3 className="tit" style={{ ["--tc" as string]: g.color }}>
-                {g.icono && <SvgIcono k={g.icono} color={g.color} />} {g.nombre}
-              </h3>
-              <div className="meta">
-                {g.T.length} trabajo(s) · {g.M.length} material(es)
-                {inicio && (
-                  <>
-                    {" · "}📅 {fechaCorta(aDia(inicio))} –{" "}
-                    {fechaCorta(aDia(fin))}
-                  </>
+          <section
+            key={g.id || "sin"}
+            className="card plegable fase-analisis"
+            style={{ borderLeft: `6px solid ${g.color}` }}
+          >
+            <div className="plegable-cab">
+              <div className="plegable-tit">
+                <span
+                  className="ico big"
+                  style={{ background: `${g.color}22` }}
+                >
+                  <SvgIcono k={g.icono || "casa"} color={g.color} />
+                </span>
+                <h2>
+                  {g.id ? `Fase ${idx + 1} · ` : ""}
+                  {g.nombre}
+                </h2>
+              </div>
+              <span
+                style={{ display: "inline-flex", gap: 6, alignItems: "center" }}
+              >
+                {g.id && (
+                  <Acciones
+                    props={props}
+                    resource="phases"
+                    list={props.data.phases}
+                    it={r.fases.find((x) => x.id === g.id)!}
+                  />
                 )}
-              </div>
-              {g.espacioIds.length > 0 && (
-                <div style={{ marginTop: 6 }}>
-                  <Chips list={r.espacios} ids={g.espacioIds} />
-                </div>
-              )}
+                <button
+                  className="sec plegable-btn"
+                  aria-expanded={abiertos.includes(llave(g))}
+                  onClick={() => alternar(llave(g))}
+                >
+                  {abiertos.includes(llave(g)) ? "Ocultar ▴" : "Ver detalles ▾"}
+                </button>
+              </span>
             </div>
-            <div className="kpis">
-              <div className="kpi">
-                <span>Presupuesto</span>
-                <b>{fmt(pres)}</b>
-              </div>
-              <div className="kpi">
-                <span>Pagado</span>
-                <b>{fmt(pag)}</b>
-              </div>
-              <div className="kpi">
-                <span>Pendiente por pagar</span>
-                <b>{fmt(pres - pag)}</b>
-              </div>
-              <div className="kpi">
-                <span>Materiales propios</span>
-                <b>{fmt(mat)}</b>
-              </div>
-              <div className="kpi">
-                <span>Gasto real</span>
-                <b>{fmt(pag + mat)}</b>
-              </div>
-              <div className="kpi">
-                <span>Avance físico promedio</span>
-                <b>{avance}%</b>
-              </div>
-            </div>
-            <span className="lbl">Pagado del presupuesto de la fase</span>
-            <Barra
-              valor={pag}
-              total={pres}
-              tono={pag > pres && pres > 0 ? "alerta" : ""}
-            />
-            <Seccion n={n++} titulo="Trabajos de la fase">
-              {g.T.length ? (
-                <div style={{ overflowX: "auto" }}>
-                  <table>
-                    <tbody>
-                      <tr>
-                        <th>Trabajo</th>
-                        <th>Contratistas</th>
-                        <th>Fechas</th>
-                        <th>Estado</th>
-                        <th className="num">Presupuesto</th>
-                        <th className="num">Pagado</th>
-                        <th className="num">Pendiente</th>
-                      </tr>
-                      {g.T.map((p) => {
-                        const est = estadoTrabajo(p);
-                        return (
-                          <tr key={p.id}>
-                            <td>
-                              <b>{p.nombre}</b>
-                              <Barra
-                                valor={totalPagado(p)}
-                                total={p.presupuesto}
-                              />
-                            </td>
-                            <td>
-                              {p.contratistaIds.length ? (
-                                <Chips
-                                  list={sinLetra(r.contratistas)}
-                                  ids={p.contratistaIds}
-                                />
-                              ) : (
-                                "—"
-                              )}
-                            </td>
-                            <td>
-                              {p.fechaInicio
-                                ? `${fechaCorta(aDia(p.fechaInicio))}${p.fechaFin ? " – " + fechaCorta(aDia(p.fechaFin)) : ""}`
-                                : "—"}
-                            </td>
-                            <td style={{ color: est.c }}>{est.t}</td>
-                            <td className="num">{fmt(p.presupuesto)}</td>
-                            <td className="num">{fmt(totalPagado(p))}</td>
-                            <td className="num">
-                              {fmt((+p.presupuesto || 0) - totalPagado(p))}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="meta">Sin trabajos en esta fase.</p>
-              )}
-            </Seccion>
-            <Seccion n={n++} titulo="Pagos de la fase">
-              {pagos.length ? (
-                <table>
-                  <tbody>
-                    <tr>
-                      <th>Fecha</th>
-                      <th>Trabajo</th>
-                      <th>Descripción</th>
-                      <th className="num">Monto</th>
-                    </tr>
-                    {pagos.map((x) => (
-                      <tr key={x.id}>
-                        <td>{x.fecha}</td>
-                        <td>{x.partida.nombre}</td>
-                        <td>{x.concepto}</td>
-                        <td className="num">{fmt(x.monto)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p className="meta">Sin pagos en esta fase.</p>
-              )}
-            </Seccion>
-            {pag > 0 && (
-              <Seccion n={n++} titulo="Pagado por contratista en esta fase">
-                <Pie
-                  datos={[
-                    ...r.contratistas.map((c) => ({
-                      label: c.nombre,
-                      letra: c.letra,
-                      color: c.color,
-                      valor: sCon[c.id]?.valor || 0,
-                    })),
-                    {
-                      label: "Sin contratista",
-                      color: "#8a9893",
-                      valor: sCon.ninguno?.valor || 0,
-                    },
-                  ].sort((a, b) => b.valor - a.valor)}
-                />
-              </Seccion>
-            )}
-            <Seccion n={n++} titulo="Materiales de la fase">
-              {g.M.length ? (
-                <>
-                  <TablaMateriales r={r} M={g.M} conContratistas />
-                  {Mp.length > 0 && (
-                    <div style={{ marginTop: 12 }}>
-                      <Pie
-                        datos={[
-                          ...r.categorias.map((c) => ({
-                            label: c.nombre,
-                            icono: c.icono,
-                            color: c.color,
-                            valor: sCat[c.id]?.valor || 0,
-                          })),
-                          {
-                            label: "Sin categoría",
-                            color: "#8a9893",
-                            valor: sCat.ninguno?.valor || 0,
-                          },
-                        ].sort((a, b) => b.valor - a.valor)}
-                      />
+            {abiertos.includes(llave(g)) && (
+              <div className="plegable-cuerpo">
+                <div className="fase-bloque" style={{ borderColor: g.color }}>
+                  <h3 className="tit" style={{ ["--tc" as string]: g.color }}>
+                    {g.icono && <SvgIcono k={g.icono} color={g.color} />}{" "}
+                    {g.nombre}
+                  </h3>
+                  <div className="meta">
+                    {g.T.length} trabajo(s) · {g.M.length} material(es)
+                    {inicio && (
+                      <>
+                        {" · "}📅 {fechaCorta(aDia(inicio))} –{" "}
+                        {fechaCorta(aDia(fin))}
+                      </>
+                    )}
+                  </div>
+                  {g.espacioIds.length > 0 && (
+                    <div style={{ marginTop: 6 }}>
+                      <Chips list={r.espacios} ids={g.espacioIds} />
                     </div>
                   )}
-                  <p className="meta">
-                    Si un material pertenece a varias fases, aparece completo en
-                    cada una.
-                  </p>
-                </>
-              ) : (
-                <p className="meta">Sin materiales en esta fase.</p>
-              )}
-            </Seccion>
+                </div>
+                <div className="kpis">
+                  <div className="kpi">
+                    <span>Presupuesto</span>
+                    <b>{fmt(pres)}</b>
+                  </div>
+                  <div className="kpi">
+                    <span>Pagado</span>
+                    <b>{fmt(pag)}</b>
+                  </div>
+                  <div className="kpi">
+                    <span>Pendiente por pagar</span>
+                    <b>{fmt(pres - pag)}</b>
+                  </div>
+                  <div className="kpi">
+                    <span>Materiales propios</span>
+                    <b>{fmt(mat)}</b>
+                  </div>
+                  <div className="kpi">
+                    <span>Gasto real</span>
+                    <b>{fmt(pag + mat)}</b>
+                  </div>
+                  <div className="kpi">
+                    <span>Avance físico promedio</span>
+                    <b>{avance}%</b>
+                  </div>
+                </div>
+                <span className="lbl">Pagado del presupuesto de la fase</span>
+                <Barra
+                  valor={pag}
+                  total={pres}
+                  tono={pag > pres && pres > 0 ? "alerta" : ""}
+                />
+                <Seccion n={n++} titulo="Trabajos de la fase">
+                  {g.T.length ? (
+                    <div style={{ overflowX: "auto" }}>
+                      <table>
+                        <tbody>
+                          <tr>
+                            <th>Trabajo</th>
+                            <th>Contratistas</th>
+                            <th>Fechas</th>
+                            <th>Estado</th>
+                            <th className="num">Presupuesto</th>
+                            <th className="num">Pagado</th>
+                            <th className="num">Pendiente</th>
+                          </tr>
+                          {g.T.map((p) => {
+                            const est = estadoTrabajo(p);
+                            return (
+                              <tr key={p.id}>
+                                <td>
+                                  <b>{p.nombre}</b>
+                                  <Barra
+                                    valor={totalPagado(p)}
+                                    total={p.presupuesto}
+                                  />
+                                </td>
+                                <td>
+                                  {p.contratistaIds.length ? (
+                                    <Chips
+                                      list={sinLetra(r.contratistas)}
+                                      ids={p.contratistaIds}
+                                    />
+                                  ) : (
+                                    "—"
+                                  )}
+                                </td>
+                                <td>
+                                  {p.fechaInicio
+                                    ? `${fechaCorta(aDia(p.fechaInicio))}${p.fechaFin ? " – " + fechaCorta(aDia(p.fechaFin)) : ""}`
+                                    : "—"}
+                                </td>
+                                <td style={{ color: est.c }}>{est.t}</td>
+                                <td className="num">{fmt(p.presupuesto)}</td>
+                                <td className="num">{fmt(totalPagado(p))}</td>
+                                <td className="num">
+                                  {fmt((+p.presupuesto || 0) - totalPagado(p))}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="meta">Sin trabajos en esta fase.</p>
+                  )}
+                </Seccion>
+                <Seccion n={n++} titulo="Pagos de la fase">
+                  {pagos.length ? (
+                    <table>
+                      <tbody>
+                        <tr>
+                          <th>Fecha</th>
+                          <th>Trabajo</th>
+                          <th>Descripción</th>
+                          <th className="num">Monto</th>
+                        </tr>
+                        {pagos.map((x) => (
+                          <tr key={x.id}>
+                            <td>{x.fecha}</td>
+                            <td>{x.partida.nombre}</td>
+                            <td>{x.concepto}</td>
+                            <td className="num">{fmt(x.monto)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p className="meta">Sin pagos en esta fase.</p>
+                  )}
+                </Seccion>
+                {pag > 0 && (
+                  <Seccion n={n++} titulo="Pagado por contratista en esta fase">
+                    <Pie
+                      datos={[
+                        ...r.contratistas.map((c) => ({
+                          label: c.nombre,
+                          letra: c.letra,
+                          color: c.color,
+                          valor: sCon[c.id]?.valor || 0,
+                        })),
+                        {
+                          label: "Sin contratista",
+                          color: "#8a9893",
+                          valor: sCon.ninguno?.valor || 0,
+                        },
+                      ].sort((a, b) => b.valor - a.valor)}
+                    />
+                  </Seccion>
+                )}
+                <Seccion n={n++} titulo="Materiales de la fase">
+                  {g.M.length ? (
+                    <>
+                      <TablaMateriales r={r} M={g.M} conContratistas />
+                      {Mp.length > 0 && (
+                        <div style={{ marginTop: 12 }}>
+                          <Pie
+                            datos={[
+                              ...r.categorias.map((c) => ({
+                                label: c.nombre,
+                                icono: c.icono,
+                                color: c.color,
+                                valor: sCat[c.id]?.valor || 0,
+                              })),
+                              {
+                                label: "Sin categoría",
+                                color: "#8a9893",
+                                valor: sCat.ninguno?.valor || 0,
+                              },
+                            ].sort((a, b) => b.valor - a.valor)}
+                          />
+                        </div>
+                      )}
+                      <p className="meta">
+                        Si un material pertenece a varias fases, aparece
+                        completo en cada una.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="meta">Sin materiales en esta fase.</p>
+                  )}
+                </Seccion>
+              </div>
+            )}
           </section>
         );
       })}
@@ -1948,6 +1884,116 @@ function CuerpoCron({
   );
 }
 
+/** One phase of the timeline, with its own contractor and space filters. */
+function FaseCron({
+  r,
+  nombre,
+  color,
+  icono,
+  partidas,
+  zoom,
+  onVer,
+}: {
+  r: Royal;
+  nombre: string;
+  color: string;
+  icono?: string;
+  partidas: Partida[];
+  zoom: Zoom;
+  onVer: (p: Partida) => void;
+}) {
+  const [con, setCon] = useState("todos");
+  const [esp, setEsp] = useState("todos");
+  const [agr, setAgr] = useState<Sec>("contratista");
+  const ref = useRef<HTMLDivElement>(null);
+  const lista = partidas.filter(
+    (p) =>
+      (con === "todos" || p.contratistaIds.includes(con)) &&
+      (esp === "todos" || p.espacioIds.includes(esp)),
+  );
+  useEffect(() => {
+    const w = ref.current;
+    if (!w) return;
+    const r0 = +(w.dataset.r0 || 0);
+    const px = PX[zoom];
+    w.scrollLeft = Math.max(
+      0,
+      (hoyDia() - r0) * px + px / 2 - w.clientWidth / 2,
+    );
+  }, [zoom, con, esp, agr]);
+  const conIds = [...new Set(partidas.flatMap((p) => p.contratistaIds))];
+  const espIds = [...new Set(partidas.flatMap((p) => p.espacioIds))];
+  return (
+    <div className="fase-cron">
+      <div className="fase-cron-cab" style={{ background: color }}>
+        {icono && <SvgIcono k={icono} color="#fff" />} {nombre}
+        <span style={{ fontWeight: 400, opacity: 0.85 }}>
+          · {partidas.length} trabajo(s)
+        </span>
+      </div>
+      <div className="fase-cron-filtros no-imprimir">
+        <div className="campo">
+          <span>Contratista</span>
+          <select
+            aria-label={`Contratista en ${nombre}`}
+            value={con}
+            onChange={(e) => setCon(e.target.value)}
+          >
+            <option value="todos">Todos</option>
+            {r.contratistas
+              .filter((c) => conIds.includes(c.id))
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+          </select>
+        </div>
+        <div className="campo">
+          <span>Espacio</span>
+          <select
+            aria-label={`Espacio en ${nombre}`}
+            value={esp}
+            onChange={(e) => setEsp(e.target.value)}
+          >
+            <option value="todos">Todos</option>
+            {r.espacios
+              .filter((x) => espIds.includes(x.id))
+              .map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.nombre}
+                </option>
+              ))}
+          </select>
+        </div>
+        <div className="campo">
+          <span>Colores por</span>
+          <select
+            aria-label={`Colores en ${nombre}`}
+            value={agr}
+            onChange={(e) => setAgr(e.target.value as Sec)}
+          >
+            <option value="contratista">Contratista</option>
+            <option value="espacio">Espacio</option>
+          </select>
+        </div>
+      </div>
+      {lista.length ? (
+        <CuerpoCron
+          r={r}
+          datados={lista}
+          secciones={[agr]}
+          zoom={zoom}
+          onVer={onVer}
+          wrapRef={ref}
+        />
+      ) : (
+        <p className="meta">Ningún trabajo coincide con estos filtros.</p>
+      )}
+    </div>
+  );
+}
+
 function VerTrabajo({
   p,
   r,
@@ -2035,6 +2081,7 @@ export function Cronograma(
     fase: true,
   });
   const [ver, setVer] = useState<Partida | null>(null);
+  const [vista, setVista] = useState<"general" | "fase">("general");
   const wrapRef = useRef<HTMLDivElement>(null);
   const datados = lista.filter((p) => p.fechaInicio);
   const centrarHoy = () => {
@@ -2077,6 +2124,22 @@ export function Cronograma(
           Ir a hoy
         </button>
         {admin && !props.soloFase && (
+          <div className="cr-grupo-btns">
+            <button
+              className={`cr-btn ${vista === "general" ? "act" : ""}`}
+              onClick={() => setVista("general")}
+            >
+              Vista general
+            </button>
+            <button
+              className={`cr-btn ${vista === "fase" ? "act" : ""}`}
+              onClick={() => setVista("fase")}
+            >
+              Por fase (detalle)
+            </button>
+          </div>
+        )}
+        {admin && !props.soloFase && vista === "general" && (
           <div className="cr-grupo-btns">
             {(["contratista", "espacio", "fase"] as Sec[]).map((s) => (
               <button
@@ -2121,7 +2184,37 @@ export function Cronograma(
   return (
     <>
       {controles}
-      {datados.length ? (
+      {datados.length && vista === "fase" && !props.soloFase ? (
+        [
+          ...r.fases.map((f) => ({
+            k: f.id,
+            nombre: f.nombre,
+            color: f.color,
+            icono: f.icono,
+            items: datados.filter((p) => p.faseId === f.id),
+          })),
+          {
+            k: "sin",
+            nombre: "Sin fase",
+            color: "#8a9893",
+            icono: undefined,
+            items: datados.filter((p) => !p.faseId),
+          },
+        ]
+          .filter((g) => g.items.length)
+          .map((g) => (
+            <FaseCron
+              key={g.k}
+              r={r}
+              nombre={g.nombre}
+              color={g.color}
+              icono={g.icono}
+              partidas={g.items}
+              zoom={zoom}
+              onVer={setVer}
+            />
+          ))
+      ) : datados.length ? (
         <CuerpoCron
           r={r}
           datados={datados}
