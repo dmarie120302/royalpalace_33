@@ -301,7 +301,7 @@ export function RoyalForm(props: RoyalFormProps) {
   const [fecha, setFecha] = useState(str(record.date) || today());
   const [monto, setMonto] = useState(dinero(record.amount_cents));
   const [concepto, setConcepto] = useState(str(record.description));
-  const [beneficiario, setBeneficiario] = useState(str(record.contractor_id));
+  const [beneficiario] = useState(str(record.contractor_id));
   const [tienda, setTienda] = useState(str(record.store));
   const [cantidad, setCantidad] = useState(str(record.quantity));
   const [categoria, setCategoria] = useState<string[]>(
@@ -409,17 +409,16 @@ export function RoyalForm(props: RoyalFormProps) {
         const workId = str(record.work_item_id);
         const asignados =
           r.partidas.find((p) => p.id === workId)?.contratistaIds || [];
-        const quienCobra =
-          beneficiario || (asignados.length === 1 ? asignados[0] : "");
+        // Keeps the current payee when editing; new payments go to the
+        // first contractor assigned to the work.
+        const quienCobra = beneficiario || asignados[0] || "";
         if (!fecha) throw new Error("Escribe la fecha.");
         if (!(Number(monto) > 0))
           throw new Error("Escribe un monto mayor que cero.");
         if (!concepto.trim()) throw new Error("Escribe la descripción.");
         if (!quienCobra)
           throw new Error(
-            asignados.length
-              ? "Elige a qué contratista se le pagó."
-              : "Asigna primero un contratista a este trabajo (Editar trabajo).",
+            "Asigna primero un contratista a este trabajo (Editar trabajo).",
           );
         Object.assign(input, {
           work_item_id: workId,
@@ -661,10 +660,6 @@ export function RoyalForm(props: RoyalFormProps) {
   }
 
   if (resource === "payments") {
-    const workId = str(record.work_item_id);
-    const asignados = r.contratistas.filter((c) =>
-      r.partidas.find((p) => p.id === workId)?.contratistaIds.includes(c.id),
-    );
     return modal(
       <>
         <div className="fila-fechas" style={{ marginTop: 6 }}>
@@ -695,22 +690,7 @@ export function RoyalForm(props: RoyalFormProps) {
             placeholder="Ej.: Materiales ($275) y mano de obra ($200) – cuarto principal"
           />
         </Campo>
-        {asignados.length > 1 && (
-          <Campo label="¿A quién se le pagó?">
-            <select
-              style={{ width: "100%" }}
-              value={beneficiario}
-              onChange={(e) => setBeneficiario(e.target.value)}
-            >
-              <option value="">Selecciona…</option>
-              {asignados.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
-          </Campo>
-        )}
+
         {
           <Fotos
             files={files}

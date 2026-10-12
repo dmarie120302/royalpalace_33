@@ -142,7 +142,7 @@ function Archivos({
 }
 
 export function Registrar(props: RoyalProps) {
-  const { r, project, data, save, refresh, notify } = props;
+  const { r, project, save, refresh, notify } = props;
   const [tipo, setTipo] = useState<"pago" | "material">("pago");
   const [trabajo, setTrabajo] = useState("");
   const [contratista, setContratista] = useState("");
@@ -180,38 +180,17 @@ export function Registrar(props: RoyalProps) {
     setBusy(true);
     try {
       if (tipo === "pago") {
-        if (!contratista) throw new Error("Elige a quién se le pagó.");
-        // The payee must be assigned to the work: add them if they are not.
-        const work = data.works.find((w) => w.id === p.id);
-        if (
-          work &&
-          !work.assignments.some((a) => a.contractor_id === contratista)
-        ) {
-          await save("work_items", {
-            id: work.id,
-            project_id: project.id,
-            name: work.name,
-            description: work.description,
-            phase_id: work.phase_id,
-            budget_cents: work.budget_cents,
-            start_date: work.start_date,
-            end_date: work.end_date,
-            status: work.status,
-            progress: work.progress,
-            space_ids: work.space_ids,
-            assignments: [
-              ...work.assignments.map((a) => ({
-                contractor_id: a.contractor_id,
-                allocation_cents: a.allocation_cents,
-              })),
-              { contractor_id: contratista, allocation_cents: 0 },
-            ],
-          });
-        }
+        // The payment goes to the contractor assigned to the work (the first
+        // one if there are several); the form does not ask for it.
+        const cobra = p.contratistaIds[0];
+        if (!cobra)
+          throw new Error(
+            "Este trabajo no tiene contratista asignado. Asígnale uno en Trabajos → Editar.",
+          );
         const id = await save("payments", {
           project_id: project.id,
           work_item_id: p.id,
-          contractor_id: contratista,
+          contractor_id: cobra,
           amount_cents: toCents(monto),
           date: fecha,
           description: descripcion.trim(),
@@ -321,35 +300,30 @@ export function Registrar(props: RoyalProps) {
               ))}
             </select>
           </label>
-          <label>
-            {tipo === "pago" ? "¿A quién se le pagó?" : "Encargado"}
-            <select
-              style={{ width: "100%" }}
-              value={contratista}
-              onChange={(e) => setContratista(e.target.value)}
-            >
-              <option value="">
-                {tipo === "pago" ? "Selecciona…" : "Sin encargado"}
-              </option>
-              {opcionesContratista.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                  {c.oficio ? ` · ${c.oficio}` : ""}
-                  {p && !asignados.includes(c.id)
-                    ? " (no asignado a este trabajo)"
-                    : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-          {tipo === "pago" &&
-            contratista &&
-            p &&
-            !asignados.includes(contratista) && (
-              <p className="meta">
-                Al guardar, este contratista quedará asignado al trabajo.
-              </p>
-            )}
+          {tipo === "material" && (
+            <label>
+              Encargado
+              <select
+                style={{ width: "100%" }}
+                value={contratista}
+                onChange={(e) => setContratista(e.target.value)}
+              >
+                <option value="">Sin encargado</option>
+                {opcionesContratista.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
+                    {c.oficio ? ` · ${c.oficio}` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {tipo === "pago" && p && !p.contratistaIds.length && (
+            <p className="meta" style={{ color: "var(--warn)" }}>
+              Este trabajo no tiene contratista asignado. Asígnale uno en
+              Trabajos → Editar antes de registrar el pago.
+            </p>
+          )}
           <label>
             Monto ($)
             <input
