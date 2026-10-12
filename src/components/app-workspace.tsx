@@ -46,8 +46,8 @@ type View =
   | "movimientos";
 // Same tabs, order and buttons as ph33-royal-palace-v14.html.
 const navigation: { id: View; label: string }[] = [
-  { id: "trabajos", label: "Trabajos" },
   { id: "registrar", label: "Registrar" },
+  { id: "trabajos", label: "Trabajos" },
   { id: "fases", label: "Fases" },
   { id: "analisis", label: "Análisis" },
   { id: "cronograma", label: "Cronograma" },
