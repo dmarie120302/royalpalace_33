@@ -129,6 +129,8 @@ export const ICONOS: Record<string, string> = {
     '<path d="M12 3s-5 6-5 10a5 5 0 0 0 10 0c0-4-5-10-5-10z"/><path d="M4 21h16"/>',
   silicon:
     '<path d="M8 3h8v12H8z"/><path d="M10 15l2 6 2-6"/><path d="M8 7h8"/>',
+  tienda:
+    '<path d="M3 9l2-5h14l2 5"/><path d="M4 9v11h16V9"/><path d="M9 20v-6h6v6"/>',
 };
 export const NOMBRES: Record<string, string> = {
   casa: "Casa",
@@ -206,6 +208,7 @@ export const NOMBRES: Record<string, string> = {
   yeso: "Yeso / gypsum",
   impermeable: "Impermeabilizante",
   silicon: "Silicón / sellador",
+  tienda: "Tienda / proveedor",
 };
 const ICONOS_TIT: Record<string, string> = {
   grafica: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',

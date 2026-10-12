@@ -209,124 +209,182 @@ export function Trabajos(props: RoyalProps) {
           {todos ? "Ocultar todos los detalles" : "Ver todos los detalles"}
         </button>
       </div>
-      {r.partidas.map((p) => {
-        const pag = totalPagado(p);
-        const excede = p.presupuesto > 0 && pag > p.presupuesto;
-        const f = r.fases.find((x) => x.id === p.faseId);
-        const est = estadoTrabajo(p);
-        const tieneEtiquetas =
-          !!f || p.espacioIds.length || p.contratistaIds.length;
-        const abierto = abiertos.includes(p.id);
-        return (
-          <section className="card plegable" key={p.id}>
-            <div className="plegable-cab">
-              <div className="plegable-tit">
-                <h2>{p.nombre}</h2>
-                <span
-                  className="estado"
-                  style={{ color: est.c, fontSize: ".85rem" }}
-                >
-                  {est.t}
+      {[
+        ...r.fases.map((f) => ({
+          k: f.id,
+          nombre: f.nombre,
+          color: f.color,
+          icono: f.icono as string | undefined,
+          items: r.partidas.filter((p) => p.faseId === f.id),
+        })),
+        {
+          k: "sin-fase",
+          nombre: "Sin fase",
+          color: "#8a9893",
+          icono: undefined,
+          items: r.partidas.filter((p) => !p.faseId),
+        },
+      ]
+        .filter((g) => g.items.length)
+        .map((g) => {
+          const avanceFase = Math.round(
+            g.items.reduce((a, p) => a + p.avance, 0) / g.items.length,
+          );
+          return (
+            <div key={g.k} className="grupo-fase">
+              <div className="grupo-fase-cab" style={{ background: g.color }}>
+                <span className="grupo-fase-tit">
+                  {g.icono && <SvgIcono k={g.icono} color="#fff" />} {g.nombre}
+                  <span className="grupo-fase-meta">
+                    · {g.items.length} trabajo(s) · avance promedio {avanceFase}
+                    %
+                  </span>
                 </span>
               </div>
-              <button
-                className="sec plegable-btn"
-                aria-expanded={abierto}
-                onClick={() => alternar(p.id)}
-              >
-                {abierto ? "Ocultar ▴" : "Ver detalles ▾"}
-              </button>
-            </div>
-            {abierto && (
-              <div className="plegable-cuerpo">
-                <div className="fila">
-                  <div>
-                    <div>
-                      {tieneEtiquetas ? (
-                        <>
-                          {f && <Chip it={f} />}
-                          <Chips list={r.espacios} ids={p.espacioIds} />
-                          <Chips
-                            list={sinLetra(r.contratistas)}
-                            ids={p.contratistaIds}
-                          />
-                        </>
-                      ) : (
-                        <span className="meta">
-                          Sin fase, espacio ni contratista
+              {g.items.map((p) => {
+                const pag = totalPagado(p);
+                const excede = p.presupuesto > 0 && pag > p.presupuesto;
+                const f = r.fases.find((x) => x.id === p.faseId);
+                const est = estadoTrabajo(p);
+                const tieneEtiquetas =
+                  !!f || p.espacioIds.length || p.contratistaIds.length;
+                const abierto = abiertos.includes(p.id);
+                return (
+                  <section className="card plegable" key={p.id}>
+                    <div className="plegable-cab">
+                      <div className="plegable-tit">
+                        <h2>{p.nombre}</h2>
+                        <span
+                          className="estado"
+                          style={{ color: est.c, fontSize: ".85rem" }}
+                        >
+                          {est.t}
                         </span>
-                      )}
+                      </div>
+                      <div
+                        className="avance-trabajo"
+                        title="Avance del trabajo"
+                      >
+                        <span className="meta">Avance</span>
+                        <Barra
+                          valor={p.avance}
+                          total={100}
+                          label={`Avance de ${p.nombre}`}
+                          tono={
+                            p.avance >= 100
+                              ? "verde"
+                              : p.avance === 0
+                                ? "inicio"
+                                : ""
+                          }
+                        />
+                      </div>
+                      <button
+                        className="sec plegable-btn"
+                        aria-expanded={abierto}
+                        onClick={() => alternar(p.id)}
+                      >
+                        {abierto ? "Ocultar ▴" : "Ver detalles ▾"}
+                      </button>
                     </div>
-                  </div>
-                  <div className="meta" style={{ textAlign: "right" }}>
-                    Presupuesto <b>{fmt(p.presupuesto)}</b>
-                    <br />
-                    Pagado <b>{fmt(pag)}</b> · Pendiente{" "}
-                    <b>{fmt(p.presupuesto - pag)}</b>
-                  </div>
-                </div>
-                <div className="fila" style={{ marginTop: 4 }}>
-                  <span className="meta">
-                    {p.fechaInicio
-                      ? `📅 ${fechaCorta(aDia(p.fechaInicio))}${p.fechaFin ? " – " + fechaCorta(aDia(p.fechaFin)) : ""}`
-                      : "Sin fechas"}
-                  </span>
-                  <span
-                    className="estado"
-                    style={{ color: est.c, borderColor: est.c, margin: 0 }}
-                  >
-                    {est.t}
-                  </span>
-                </div>
-                <Barra
-                  valor={pag}
-                  total={p.presupuesto}
-                  tono={excede ? "alerta" : ""}
-                />
-                <div className="fila">
-                  <span className="meta">
-                    {p.pagos.length} pago(s)
-                    {excede && (
-                      <>
-                        {" · "}
-                        <b style={{ color: "var(--warn)" }}>
-                          excede el presupuesto
-                        </b>
-                      </>
+                    {abierto && (
+                      <div className="plegable-cuerpo">
+                        <div className="fila">
+                          <div>
+                            <div>
+                              {tieneEtiquetas ? (
+                                <>
+                                  {f && <Chip it={f} />}
+                                  <Chips list={r.espacios} ids={p.espacioIds} />
+                                  <Chips
+                                    list={sinLetra(r.contratistas)}
+                                    ids={p.contratistaIds}
+                                  />
+                                </>
+                              ) : (
+                                <span className="meta">
+                                  Sin fase, espacio ni contratista
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="meta" style={{ textAlign: "right" }}>
+                            Presupuesto <b>{fmt(p.presupuesto)}</b>
+                            <br />
+                            Pagado <b>{fmt(pag)}</b> · Pendiente{" "}
+                            <b>{fmt(p.presupuesto - pag)}</b>
+                          </div>
+                        </div>
+                        <div className="fila" style={{ marginTop: 4 }}>
+                          <span className="meta">
+                            {p.fechaInicio
+                              ? `📅 ${fechaCorta(aDia(p.fechaInicio))}${p.fechaFin ? " – " + fechaCorta(aDia(p.fechaFin)) : ""}`
+                              : "Sin fechas"}
+                          </span>
+                          <span
+                            className="estado"
+                            style={{
+                              color: est.c,
+                              borderColor: est.c,
+                              margin: 0,
+                            }}
+                          >
+                            {est.t}
+                          </span>
+                        </div>
+                        <span className="lbl">Pagado del presupuesto</span>
+                        <Barra
+                          valor={pag}
+                          total={p.presupuesto}
+                          tono={excede ? "alerta" : ""}
+                        />
+                        <div className="fila">
+                          <span className="meta">
+                            {p.pagos.length} pago(s)
+                            {excede && (
+                              <>
+                                {" · "}
+                                <b style={{ color: "var(--warn)" }}>
+                                  excede el presupuesto
+                                </b>
+                              </>
+                            )}
+                          </span>
+                          {admin && (
+                            <span style={{ display: "flex", gap: 6 }}>
+                              <button
+                                className="sec"
+                                aria-label={`Editar ${p.nombre}`}
+                                onClick={() =>
+                                  props.edit(
+                                    "work_items",
+                                    record(props.data.works, p.id),
+                                  )
+                                }
+                              >
+                                Editar
+                              </button>
+                              <button
+                                className="peligro"
+                                aria-label={`Archivar ${p.nombre}`}
+                                onClick={() =>
+                                  props.archive("work_items", p.id, p.nombre)
+                                }
+                              >
+                                Eliminar
+                              </button>
+                            </span>
+                          )}
+                        </div>
+                        <DetallePagos p={p} admin={admin} props={props} />
+                      </div>
                     )}
-                  </span>
-                  {admin && (
-                    <span style={{ display: "flex", gap: 6 }}>
-                      <button
-                        className="sec"
-                        aria-label={`Editar ${p.nombre}`}
-                        onClick={() =>
-                          props.edit(
-                            "work_items",
-                            record(props.data.works, p.id),
-                          )
-                        }
-                      >
-                        Editar
-                      </button>
-                      <button
-                        className="peligro"
-                        aria-label={`Archivar ${p.nombre}`}
-                        onClick={() =>
-                          props.archive("work_items", p.id, p.nombre)
-                        }
-                      >
-                        Eliminar
-                      </button>
-                    </span>
-                  )}
-                </div>
-                <DetallePagos p={p} admin={admin} props={props} />
-              </div>
-            )}
-          </section>
-        );
-      })}
+                  </section>
+                );
+              })}
+            </div>
+          );
+        })}
     </>
   );
 }
@@ -1573,17 +1631,52 @@ export function Fases(props: RoyalProps) {
 }
 
 /* ---------- Materiales ---------- */
+/** Store name normalized so "Elmec", "ELMEC " and "elmec" are the same store. */
+const claveTienda = (t: string) =>
+  t.trim().replace(/\s+/g, " ").toLocaleLowerCase("es");
+
 export function Materiales(props: RoyalProps) {
   const { r, admin } = props;
+  const [verPor, setVerPor] = useState<"lista" | "categoria" | "tienda">(
+    "lista",
+  );
+  const [fCat, setCat] = useState("todos");
+  const [fTienda, setTienda] = useState("todos");
+  const [abiertos, setAbiertos] = useState<string[]>([]);
+  const alternar = (id: string) =>
+    setAbiertos((v) =>
+      v.includes(id) ? v.filter((x) => x !== id) : [...v, id],
+    );
+  const tiendas = [
+    ...new Map(
+      r.materiales
+        .filter((m) => m.tienda.trim())
+        .map((m) => [
+          claveTienda(m.tienda),
+          m.tienda.trim().replace(/\s+/g, " "),
+        ]),
+    ).entries(),
+  ]
+    .map(([k, nombre]) => ({ k, nombre }))
+    .sort((x, y) =>
+      x.nombre.localeCompare(y.nombre, "es", { sensitivity: "base" }),
+    );
   const cabecera = r.categorias.length ? (
     <div className="strip">
       {r.categorias.map((c) => (
         <span
-          className="chip"
+          className={`chip${fCat === c.id ? " chip-sel" : ""}`}
           key={c.id}
           style={{ color: c.color, borderColor: c.color }}
         >
-          <Icono it={c} /> {c.nombre}
+          <button
+            type="button"
+            className="chip-btn"
+            title="Ver solo esta categoría"
+            onClick={() => setCat(fCat === c.id ? "todos" : c.id)}
+          >
+            <Icono it={c} /> {c.nombre}
+          </button>
           {admin && (
             <span style={{ display: "inline-flex", gap: 3, marginLeft: 4 }}>
               <button
@@ -1624,17 +1717,95 @@ export function Materiales(props: RoyalProps) {
       </>
     );
   const orden = r.materiales
-    .slice()
+    .filter(
+      (m) =>
+        (fCat === "todos" ||
+          (fCat === "ninguno" ? !m.categoriaId : m.categoriaId === fCat)) &&
+        (fTienda === "todos" || claveTienda(m.tienda) === fTienda),
+    )
     .sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
-  return (
-    <>
-      {cabecera}
-      <p className="resumen-filtro">
-        Compras propias sumadas: <b>{fmt(sumaMat(r.materiales))}</b>{" "}
-        <span className="meta">
-          (los marcados como &quot;incluido en pago&quot; no se suman)
-        </span>
-      </p>
+  const total = (list: Material[]) =>
+    list.reduce((a, m) => a + (+m.monto || 0), 0);
+  const fila = (m: Material) => {
+    const fs = r.fases.filter((x) => m.faseIds.includes(x.id));
+    const c = r.categorias.find((x) => x.id === m.categoriaId);
+    const t = r.partidas.find((x) => x.id === m.partidaId);
+    const hay =
+      c || fs.length || m.espacioIds.length || m.contratistaIds.length || t;
+    return (
+      <tr key={m.id}>
+        <td>{m.fecha}</td>
+        <td>
+          <b>{m.tienda}</b>
+        </td>
+        <td>
+          {m.descripcion}
+          {m.cantidad && <span className="meta"> ({m.cantidad})</span>}
+          {m.incluidoEnPago && (
+            <span className="badge">incluido en pago a contratista</span>
+          )}
+          <div>
+            {hay ? (
+              <>
+                {c && <Chip it={c} />}
+                {fs.map((x) => (
+                  <Chip key={x.id} it={x} />
+                ))}
+                <Chips list={r.espacios} ids={m.espacioIds} />
+                <Chips list={sinLetra(r.contratistas)} ids={m.contratistaIds} />
+                {t && <span className="meta">{t.nombre}</span>}
+              </>
+            ) : (
+              <span className="meta">
+                Sin categoría, fase, espacio ni contratista
+              </span>
+            )}
+          </div>
+        </td>
+        <td className="num">{fmt(m.monto)}</td>
+        <td>
+          <Miniatura
+            archivos={m.archivos}
+            label={`Comprobantes de ${m.descripcion}`}
+            onOpen={() =>
+              props.attachments(
+                "material",
+                m.id,
+                `${m.fecha} · ${m.tienda} · ${m.descripcion}`,
+              )
+            }
+          />
+        </td>
+        {admin && (
+          <td style={{ whiteSpace: "nowrap" }}>
+            <button
+              className="sec mini"
+              aria-label={`Editar ${m.descripcion}`}
+              onClick={() =>
+                props.edit(
+                  "material_purchases",
+                  record(props.data.materials, m.id),
+                )
+              }
+            >
+              ✎
+            </button>{" "}
+            <button
+              className="peligro mini"
+              aria-label={`Archivar ${m.descripcion}`}
+              onClick={() =>
+                props.archive("material_purchases", m.id, m.descripcion)
+              }
+            >
+              ×
+            </button>
+          </td>
+        )}
+      </tr>
+    );
+  };
+  const tabla = (list: Material[]) => (
+    <div style={{ overflowX: "auto" }}>
       <table>
         <tbody>
           <tr>
@@ -1649,95 +1820,147 @@ export function Materiales(props: RoyalProps) {
               </th>
             )}
           </tr>
-          {orden.map((m) => {
-            const fs = r.fases.filter((x) => m.faseIds.includes(x.id));
-            const c = r.categorias.find((x) => x.id === m.categoriaId);
-            const t = r.partidas.find((x) => x.id === m.partidaId);
-            const hay =
-              c ||
-              fs.length ||
-              m.espacioIds.length ||
-              m.contratistaIds.length ||
-              t;
-            return (
-              <tr key={m.id}>
-                <td>{m.fecha}</td>
-                <td>
-                  <b>{m.tienda}</b>
-                </td>
-                <td>
-                  {m.descripcion}
-                  {m.cantidad && <span className="meta"> ({m.cantidad})</span>}
-                  {m.incluidoEnPago && (
-                    <span className="badge">
-                      incluido en pago a contratista
-                    </span>
-                  )}
-                  <div>
-                    {hay ? (
-                      <>
-                        {c && <Chip it={c} />}
-                        {fs.map((x) => (
-                          <Chip key={x.id} it={x} />
-                        ))}
-                        <Chips list={r.espacios} ids={m.espacioIds} />
-                        <Chips
-                          list={sinLetra(r.contratistas)}
-                          ids={m.contratistaIds}
-                        />
-                        {t && <span className="meta">{t.nombre}</span>}
-                      </>
-                    ) : (
-                      <span className="meta">
-                        Sin categoría, fase, espacio ni contratista
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="num">{fmt(m.monto)}</td>
-                <td>
-                  <Miniatura
-                    archivos={m.archivos}
-                    label={`Comprobantes de ${m.descripcion}`}
-                    onOpen={() =>
-                      props.attachments(
-                        "material",
-                        m.id,
-                        `${m.fecha} · ${m.tienda} · ${m.descripcion}`,
-                      )
-                    }
-                  />
-                </td>
-                {admin && (
-                  <td style={{ whiteSpace: "nowrap" }}>
-                    <button
-                      className="sec mini"
-                      aria-label={`Editar ${m.descripcion}`}
-                      onClick={() =>
-                        props.edit(
-                          "material_purchases",
-                          record(props.data.materials, m.id),
-                        )
-                      }
-                    >
-                      ✎
-                    </button>{" "}
-                    <button
-                      className="peligro mini"
-                      aria-label={`Archivar ${m.descripcion}`}
-                      onClick={() =>
-                        props.archive("material_purchases", m.id, m.descripcion)
-                      }
-                    >
-                      ×
-                    </button>
-                  </td>
-                )}
-              </tr>
-            );
-          })}
+          {list.map(fila)}
         </tbody>
       </table>
+    </div>
+  );
+  const grupos =
+    verPor === "categoria"
+      ? [
+          ...r.categorias.map((c) => ({
+            k: c.id,
+            nombre: c.nombre,
+            color: c.color,
+            icono: c.icono as string | undefined,
+            items: orden.filter((m) => m.categoriaId === c.id),
+          })),
+          {
+            k: "sin-categoria",
+            nombre: "Sin categoría",
+            color: "#8a9893",
+            icono: undefined,
+            items: orden.filter((m) => !m.categoriaId),
+          },
+        ]
+      : tiendas.map((t) => ({
+          k: `tienda-${t.k}`,
+          nombre: t.nombre,
+          color: "#4a4fc4",
+          icono: "tienda",
+          items: orden.filter((m) => claveTienda(m.tienda) === t.k),
+        }));
+  const visibles = grupos.filter((g) => g.items.length);
+  const activo = fCat !== "todos" || fTienda !== "todos";
+  return (
+    <>
+      {cabecera}
+      <div className="filtros no-imprimir">
+        <div className="campo">
+          <span>Ver por</span>
+          <select
+            aria-label="Ver por"
+            value={verPor}
+            onChange={(e) => setVerPor(e.target.value as typeof verPor)}
+          >
+            <option value="lista">Lista (por fecha)</option>
+            <option value="categoria">Categoría</option>
+            <option value="tienda">Tienda</option>
+          </select>
+        </div>
+        <div className="campo">
+          <span>Categoría</span>
+          <select
+            aria-label="Categoría"
+            value={fCat}
+            onChange={(e) => setCat(e.target.value)}
+          >
+            <option value="todos">Todas las categorías</option>
+            <option value="ninguno">Sin categoría</option>
+            {r.categorias.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="campo">
+          <span>Tienda</span>
+          <select
+            aria-label="Tienda"
+            value={fTienda}
+            onChange={(e) => setTienda(e.target.value)}
+          >
+            <option value="todos">Todas las tiendas</option>
+            {tiendas.map((t) => (
+              <option key={t.k} value={t.k}>
+                {t.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+        {activo && (
+          <button
+            className="sec"
+            onClick={() => {
+              setCat("todos");
+              setTienda("todos");
+            }}
+          >
+            Limpiar filtros
+          </button>
+        )}
+      </div>
+      <p className="resumen-filtro">
+        {activo ? "Compras que coinciden: " : "Compras propias sumadas: "}
+        <b>{fmt(activo ? total(orden) : sumaMat(r.materiales))}</b>{" "}
+        <span className="meta">
+          {activo
+            ? `(${orden.length} compra(s))`
+            : '(los marcados como "incluido en pago" no se suman)'}
+        </span>
+      </p>
+      {!orden.length ? (
+        <p className="meta">No hay compras con estos filtros.</p>
+      ) : verPor === "lista" ? (
+        tabla(orden)
+      ) : (
+        visibles.map((g) => {
+          const abierto = abiertos.includes(g.k);
+          return (
+            <section
+              key={g.k}
+              className="card plegable"
+              style={{ borderLeft: `6px solid ${g.color}` }}
+            >
+              <div className="plegable-cab">
+                <div className="plegable-tit">
+                  <span
+                    className="ico big"
+                    style={{ background: `${g.color}22` }}
+                  >
+                    <SvgIcono k={g.icono || "casa"} color={g.color} />
+                  </span>
+                  <h2>{g.nombre}</h2>
+                  <span className="meta">
+                    {g.items.length} compra(s) · <b>{fmt(total(g.items))}</b>
+                  </span>
+                </div>
+                <button
+                  className="sec plegable-btn"
+                  aria-expanded={abierto}
+                  onClick={() => alternar(g.k)}
+                >
+                  {abierto ? "Ocultar ▴" : "Ver compras ▾"}
+                </button>
+              </div>
+              {abierto && (
+                <div className="plegable-cuerpo">{tabla(g.items)}</div>
+              )}
+            </section>
+          );
+        })
+      )}
     </>
   );
 }

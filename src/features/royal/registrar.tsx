@@ -150,6 +150,7 @@ export function Registrar(props: RoyalProps) {
   const [descripcion, setDescripcion] = useState("");
   const [cantidad, setCantidad] = useState("");
   const [tienda, setTienda] = useState("");
+  const [categoria, setCategoria] = useState("");
   const [fecha, setFecha] = useState(today);
   const [files, setFiles] = useState<File[]>([]);
   const [inputKey, setInputKey] = useState(0);
@@ -163,6 +164,7 @@ export function Registrar(props: RoyalProps) {
     setDescripcion("");
     setCantidad("");
     setTienda("");
+    setCategoria("");
     setFiles([]);
     setInputKey((k) => k + 1);
     setFecha(today());
@@ -210,7 +212,7 @@ export function Registrar(props: RoyalProps) {
           contractor_id: contratista || null,
           phase_id: p.faseId,
           phase_ids: p.faseId ? [p.faseId] : [],
-          category_id: null,
+          category_id: categoria || null,
           covered_by_payment_id: null,
           space_ids: p.espacioIds,
           amount_cents: toCents(monto),
@@ -244,6 +246,15 @@ export function Registrar(props: RoyalProps) {
 
   return (
     <div className="registrar">
+      <datalist id="tiendas-usadas">
+        {[
+          ...new Set(r.materiales.map((m) => m.tienda.trim()).filter(Boolean)),
+        ].map((t) => (
+          <option key={t} value={t}>
+            {t}
+          </option>
+        ))}
+      </datalist>
       <div className="cr-grupo-btns" style={{ marginBottom: 12 }}>
         <button
           className={`cr-btn ${tipo === "pago" ? "act" : ""}`}
@@ -318,6 +329,23 @@ export function Registrar(props: RoyalProps) {
               </select>
             </label>
           )}
+          {tipo === "material" && (
+            <label>
+              Categoría
+              <select
+                style={{ width: "100%" }}
+                value={categoria}
+                onChange={(e) => setCategoria(e.target.value)}
+              >
+                <option value="">Sin categoría</option>
+                {r.categorias.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {tipo === "pago" && p && !p.contratistaIds.length && (
             <p className="meta" style={{ color: "var(--warn)" }}>
               Este trabajo no tiene contratista asignado. Asígnale uno en
@@ -363,6 +391,7 @@ export function Registrar(props: RoyalProps) {
                   <input
                     value={tienda}
                     onChange={(e) => setTienda(e.target.value)}
+                    list="tiendas-usadas"
                     placeholder="Ej.: Novey"
                   />
                 </label>

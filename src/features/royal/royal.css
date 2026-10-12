@@ -198,3 +198,13 @@
 .royal .registrar-grid form h2{margin:0 0 4px;font-size:1.05rem}
 .royal .detalle-trabajo{position:sticky;top:70px}
 @media (max-width:760px){.royal .registrar-grid{grid-template-columns:1fr}.royal .detalle-trabajo{position:static}}
+.royal .chip .chip-btn{background:none;border:0;padding:0;color:inherit;font:inherit;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.royal .chip.chip-sel{background:currentColor}
+.royal .chip.chip-sel .chip-btn{color:#fff}
+.royal .grupo-fase{margin-bottom:18px}
+.royal .grupo-fase-cab{color:#fff;border-radius:10px;padding:8px 12px;margin-bottom:8px;font-weight:700}
+.royal .grupo-fase-tit{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+.royal .grupo-fase-meta{font-weight:400;opacity:.9}
+.royal .avance-trabajo{display:flex;align-items:center;gap:8px;flex:1;min-width:180px;max-width:360px}
+.royal .avance-trabajo .progreso{flex:1;margin:0;height:18px}
+.royal .avance-trabajo .progreso b{font-size:.72rem}
