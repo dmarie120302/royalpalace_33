@@ -1635,13 +1635,32 @@ export function Fases(props: RoyalProps) {
 const claveTienda = (t: string) =>
   t.trim().replace(/\s+/g, " ").toLocaleLowerCase("es");
 
+type VerMat =
+  | "categoria"
+  | "fase"
+  | "espacio"
+  | "trabajo"
+  | "encargado"
+  | "tienda"
+  | "lista";
+const VER_MAT: { v: VerMat; t: string }[] = [
+  { v: "categoria", t: "Categoría" },
+  { v: "fase", t: "Fase" },
+  { v: "espacio", t: "Espacio" },
+  { v: "trabajo", t: "Trabajo" },
+  { v: "encargado", t: "Encargado" },
+  { v: "tienda", t: "Tienda" },
+  { v: "lista", t: "Lista por fecha" },
+];
+
 export function Materiales(props: RoyalProps) {
   const { r, admin } = props;
-  const [verPor, setVerPor] = useState<"lista" | "categoria" | "tienda">(
-    "categoria",
-  );
+  const [verPor, setVerPor] = useState<VerMat>("categoria");
   const [fCat, setCat] = useState("todos");
+  const [fFase, setFase] = useState("todos");
   const [fTienda, setTienda] = useState("todos");
+  const [buscar, setBuscar] = useState("");
+  const [verCategorias, setVerCategorias] = useState(false);
   const [abiertos, setAbiertos] = useState<string[]>([]);
   const alternar = (id: string) =>
     setAbiertos((v) =>
@@ -1661,67 +1680,73 @@ export function Materiales(props: RoyalProps) {
     .sort((x, y) =>
       x.nombre.localeCompare(y.nombre, "es", { sensitivity: "base" }),
     );
-  const cabecera = r.categorias.length ? (
+  const gestion = verCategorias && (
     <div className="strip">
-      {r.categorias.map((c) => (
-        <span
-          className={`chip${fCat === c.id ? " chip-sel" : ""}`}
-          key={c.id}
-          style={{ color: c.color, borderColor: c.color }}
-        >
-          <button
-            type="button"
-            className="chip-btn"
-            title="Ver solo esta categoría"
-            onClick={() => setCat(fCat === c.id ? "todos" : c.id)}
+      {r.categorias.length ? (
+        r.categorias.map((c) => (
+          <span
+            className="chip"
+            key={c.id}
+            style={{ color: c.color, borderColor: c.color }}
           >
             <Icono it={c} /> {c.nombre}
-          </button>
-          {admin && (
-            <span style={{ display: "inline-flex", gap: 3, marginLeft: 4 }}>
-              <button
-                className="sec mini"
-                aria-label={`Editar ${c.nombre}`}
-                onClick={() =>
-                  props.edit("categories", record(props.data.categories, c.id))
-                }
-              >
-                ✎
-              </button>
-              <button
-                className="peligro mini"
-                aria-label={`Archivar ${c.nombre}`}
-                onClick={() => props.archive("categories", c.id, c.nombre)}
-              >
-                ×
-              </button>
-            </span>
-          )}
-        </span>
-      ))}
+            {admin && (
+              <span style={{ display: "inline-flex", gap: 3, marginLeft: 4 }}>
+                <button
+                  className="sec mini"
+                  aria-label={`Editar ${c.nombre}`}
+                  onClick={() =>
+                    props.edit(
+                      "categories",
+                      record(props.data.categories, c.id),
+                    )
+                  }
+                >
+                  ✎
+                </button>
+                <button
+                  className="peligro mini"
+                  aria-label={`Archivar ${c.nombre}`}
+                  onClick={() => props.archive("categories", c.id, c.nombre)}
+                >
+                  ×
+                </button>
+              </span>
+            )}
+          </span>
+        ))
+      ) : (
+        <p className="meta" style={{ margin: 0 }}>
+          Aún no hay categorías. Crea una con &quot;+ Nueva categoría&quot;.
+        </p>
+      )}
     </div>
-  ) : (
-    <p className="meta" style={{ margin: "0 0 12px" }}>
-      Aún no hay categorías. Crea una con &quot;+ Nueva categoría&quot; (ej.
-      Luces, AC, Plomería).
-    </p>
   );
   if (!r.materiales.length)
     return (
       <>
-        {cabecera}
+        {gestion}
         <p className="meta">
-          Aún no hay materiales. Registra una compra con &quot;+ Nuevo
-          material&quot;.
+          Aún no hay materiales. Registra una compra en la pestaña Registrar o
+          con &quot;+ Nuevo material&quot;.
         </p>
       </>
     );
+  const texto = buscar.trim().toLocaleLowerCase("es");
   const orden = r.materiales
     .filter(
       (m) =>
         (fCat === "todos" ||
           (fCat === "ninguno" ? !m.categoriaId : m.categoriaId === fCat)) &&
-        (fTienda === "todos" || claveTienda(m.tienda) === fTienda),
+        (fFase === "todos" ||
+          (fFase === "ninguno"
+            ? !m.faseIds.length
+            : m.faseIds.includes(fFase))) &&
+        (fTienda === "todos" || claveTienda(m.tienda) === fTienda) &&
+        (!texto ||
+          `${m.descripcion} ${m.tienda} ${m.cantidad}`
+            .toLocaleLowerCase("es")
+            .includes(texto)),
     )
     .sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
   const total = (list: Material[]) =>
@@ -1825,57 +1850,130 @@ export function Materiales(props: RoyalProps) {
       </table>
     </div>
   );
-  const grupos =
+  const sin = "#8a9893";
+  interface GrupoMat {
+    k: string;
+    nombre: string;
+    color: string;
+    icono?: string;
+    letra?: string;
+    items: Material[];
+  }
+  const porLista = <
+    T extends {
+      id: string;
+      nombre: string;
+      color: string;
+      icono?: string;
+      letra?: string;
+    },
+  >(
+    list: T[],
+    tiene: (m: Material, id: string) => boolean,
+    sinNombre: string,
+    vacio: (m: Material) => boolean,
+  ): GrupoMat[] => [
+    ...list.map((x) => ({
+      k: `${verPor}-${x.id}`,
+      nombre: x.nombre,
+      color: x.color,
+      icono: x.icono,
+      letra: x.letra,
+      items: orden.filter((m) => tiene(m, x.id)),
+    })),
+    {
+      k: `${verPor}-sin`,
+      nombre: sinNombre,
+      color: sin,
+      items: orden.filter(vacio),
+    },
+  ];
+  const grupos: GrupoMat[] =
     verPor === "categoria"
-      ? [
-          ...r.categorias.map((c) => ({
-            k: c.id,
-            nombre: c.nombre,
-            color: c.color,
-            icono: c.icono as string | undefined,
-            items: orden.filter((m) => m.categoriaId === c.id),
-          })),
-          {
-            k: "sin-categoria",
-            nombre: "Sin categoría",
-            color: "#8a9893",
-            icono: undefined,
-            items: orden.filter((m) => !m.categoriaId),
-          },
-        ]
-      : tiendas.map((t) => ({
-          k: `tienda-${t.k}`,
-          nombre: t.nombre,
-          color: "#4a4fc4",
-          icono: "tienda",
-          items: orden.filter((m) => claveTienda(m.tienda) === t.k),
-        }));
-  // By category every category is listed (also empty ones, e.g. a new
-  // "ELMEC"); by store only the stores that have purchases.
+      ? porLista(
+          r.categorias,
+          (m, id) => m.categoriaId === id,
+          "Sin categoría",
+          (m) => !m.categoriaId,
+        )
+      : verPor === "fase"
+        ? porLista(
+            r.fases,
+            (m, id) => m.faseIds.includes(id),
+            "Sin fase",
+            (m) => !m.faseIds.length,
+          )
+        : verPor === "espacio"
+          ? porLista(
+              r.espacios,
+              (m, id) => m.espacioIds.includes(id),
+              "Sin espacio",
+              (m) => !m.espacioIds.length,
+            )
+          : verPor === "trabajo"
+            ? porLista(
+                r.partidas.map((p) => ({
+                  id: p.id,
+                  nombre: p.nombre,
+                  color: "#4a4fc4",
+                  icono: "martillo",
+                })),
+                (m, id) => m.partidaId === id,
+                "Sin trabajo",
+                (m) => !m.partidaId,
+              )
+            : verPor === "encargado"
+              ? porLista(
+                  r.contratistas,
+                  (m, id) => m.contratistaIds.includes(id),
+                  "Sin encargado",
+                  (m) => !m.contratistaIds.length,
+                )
+              : tiendas.map((t) => ({
+                  k: `tienda-${t.k}`,
+                  nombre: t.nombre,
+                  color: "#4a4fc4",
+                  icono: "tienda",
+                  items: orden.filter((m) => claveTienda(m.tienda) === t.k),
+                }));
+  const filtrando =
+    fCat !== "todos" || fFase !== "todos" || fTienda !== "todos" || !!texto;
+  // Categories are always listed (even empty, e.g. a new "ELMEC") unless filtering.
   const visibles = grupos.filter(
     (g) =>
       g.items.length ||
-      (verPor === "categoria" &&
-        g.k !== "sin-categoria" &&
-        fTienda === "todos" &&
-        (fCat === "todos" || fCat === g.k)),
+      (verPor === "categoria" && !filtrando && !g.k.endsWith("-sin")),
   );
-  const activo = fCat !== "todos" || fTienda !== "todos";
+  const totalVisto = total(orden);
+  const todos = visibles
+    .filter((g) => g.items.length)
+    .every((g) => abiertos.includes(g.k));
   return (
     <>
-      {cabecera}
+      <div
+        className="fila no-imprimir"
+        style={{ justifyContent: "flex-start", marginBottom: 10 }}
+      >
+        <button
+          className="sec"
+          onClick={() => setVerCategorias(!verCategorias)}
+        >
+          {verCategorias
+            ? "Ocultar categorías ▴"
+            : `Gestionar categorías (${r.categorias.length}) ▾`}
+        </button>
+      </div>
+      {gestion}
       <div className="filtros no-imprimir">
         <div className="campo">
-          <span>Ver por</span>
-          <select
-            aria-label="Ver por"
-            value={verPor}
-            onChange={(e) => setVerPor(e.target.value as typeof verPor)}
-          >
-            <option value="categoria">Categoría</option>
-            <option value="lista">Lista (por fecha)</option>
-            <option value="tienda">Tienda</option>
-          </select>
+          <span>Buscar</span>
+          <input
+            type="search"
+            aria-label="Buscar material"
+            value={buscar}
+            onChange={(e) => setBuscar(e.target.value)}
+            placeholder="Qué compraste, tienda…"
+          />
         </div>
         <div className="campo">
           <span>Categoría</span>
@@ -1884,11 +1982,27 @@ export function Materiales(props: RoyalProps) {
             value={fCat}
             onChange={(e) => setCat(e.target.value)}
           >
-            <option value="todos">Todas las categorías</option>
+            <option value="todos">Todas</option>
             <option value="ninguno">Sin categoría</option>
             {r.categorias.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="campo">
+          <span>Fase</span>
+          <select
+            aria-label="Fase"
+            value={fFase}
+            onChange={(e) => setFase(e.target.value)}
+          >
+            <option value="todos">Todas</option>
+            <option value="ninguno">Sin fase</option>
+            {r.fases.map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.nombre}
               </option>
             ))}
           </select>
@@ -1900,7 +2014,7 @@ export function Materiales(props: RoyalProps) {
             value={fTienda}
             onChange={(e) => setTienda(e.target.value)}
           >
-            <option value="todos">Todas las tiendas</option>
+            <option value="todos">Todas</option>
             {tiendas.map((t) => (
               <option key={t.k} value={t.k}>
                 {t.nombre}
@@ -1908,66 +2022,105 @@ export function Materiales(props: RoyalProps) {
             ))}
           </select>
         </div>
-        {activo && (
+        {filtrando && (
           <button
             className="sec"
             onClick={() => {
               setCat("todos");
+              setFase("todos");
               setTienda("todos");
+              setBuscar("");
             }}
           >
-            Limpiar filtros
+            Limpiar
           </button>
         )}
       </div>
-      <p className="resumen-filtro">
-        {activo ? "Compras que coinciden: " : "Compras propias sumadas: "}
-        <b>{fmt(activo ? total(orden) : sumaMat(r.materiales))}</b>{" "}
-        <span className="meta">
-          {activo
-            ? `(${orden.length} compra(s))`
-            : '(los marcados como "incluido en pago" no se suman)'}
-        </span>
-      </p>
-      {!orden.length && verPor !== "categoria" ? (
+      <fieldset className="ver-por no-imprimir">
+        <legend className="meta">Ver por:</legend>
+        {VER_MAT.map((o) => (
+          <button
+            key={o.v}
+            className={`cr-btn ${verPor === o.v ? "act" : ""}`}
+            aria-pressed={verPor === o.v}
+            onClick={() => setVerPor(o.v)}
+          >
+            {o.t}
+          </button>
+        ))}
+      </fieldset>
+      <div className="fila" style={{ margin: "8px 0 12px" }}>
+        <p className="resumen-filtro" style={{ margin: 0 }}>
+          {filtrando ? "Compras que coinciden: " : "Total de compras: "}
+          <b>{fmt(totalVisto)}</b>{" "}
+          <span className="meta">({orden.length} compra(s))</span>
+          {!filtrando && (
+            <span className="meta">
+              {" "}
+              · propias sin incluir pagos a contratistas:{" "}
+              {fmt(sumaMat(r.materiales))}
+            </span>
+          )}
+        </p>
+        {verPor !== "lista" && (
+          <button
+            className="sec"
+            onClick={() =>
+              setAbiertos(
+                todos
+                  ? []
+                  : visibles.filter((g) => g.items.length).map((g) => g.k),
+              )
+            }
+          >
+            {todos ? "Cerrar todo" : "Abrir todo"}
+          </button>
+        )}
+      </div>
+      {!orden.length && !(verPor === "categoria" && !filtrando) ? (
         <p className="meta">No hay compras con estos filtros.</p>
       ) : verPor === "lista" ? (
         tabla(orden)
       ) : (
         visibles.map((g) => {
           const abierto = abiertos.includes(g.k);
+          const suma = total(g.items);
+          const parte = pct(suma, totalVisto);
           return (
             <section
               key={g.k}
-              className="card plegable"
+              className="card plegable grupo-mat"
               style={{ borderLeft: `6px solid ${g.color}` }}
             >
-              <div className="plegable-cab">
-                <div className="plegable-tit">
-                  <span
-                    className="ico big"
-                    style={{ background: `${g.color}22` }}
-                  >
-                    <SvgIcono k={g.icono || "casa"} color={g.color} />
+              <button
+                type="button"
+                className="grupo-mat-cab"
+                aria-expanded={abierto}
+                disabled={!g.items.length}
+                onClick={() => alternar(g.k)}
+              >
+                <span className="plegable-tit">
+                  {g.icono || g.letra ? (
+                    <Icono
+                      it={{ icono: g.icono, letra: g.letra, color: g.color }}
+                    />
+                  ) : (
+                    <span className="punto" style={{ background: g.color }} />
+                  )}
+                  <b className="grupo-mat-nombre">{g.nombre}</b>
+                  <span className="meta">{g.items.length} compra(s)</span>
+                </span>
+                <span className="grupo-mat-total">
+                  <span className="grupo-mat-barra" aria-hidden="true">
+                    <span style={{ width: `${parte}%`, background: g.color }} />
                   </span>
-                  <h2>{g.nombre}</h2>
-                  <span className="meta">
-                    {g.items.length} compra(s) · <b>{fmt(total(g.items))}</b>
+                  <b>{fmt(suma)}</b>
+                  <span className="meta">{parte.toFixed(0)}%</span>
+                  <span className="grupo-mat-flecha">
+                    {!g.items.length ? "Sin compras" : abierto ? "▴" : "▾"}
                   </span>
-                </div>
-                <button
-                  className="sec plegable-btn"
-                  aria-expanded={abierto}
-                  disabled={!g.items.length}
-                  onClick={() => alternar(g.k)}
-                >
-                  {!g.items.length
-                    ? "Sin compras"
-                    : abierto
-                      ? "Ocultar ▴"
-                      : "Ver compras ▾"}
-                </button>
-              </div>
+                </span>
+              </button>
               {abierto && (
                 <div className="plegable-cuerpo">{tabla(g.items)}</div>
               )}
@@ -1975,6 +2128,14 @@ export function Materiales(props: RoyalProps) {
           );
         })
       )}
+      {verPor !== "categoria" &&
+        verPor !== "lista" &&
+        verPor !== "tienda" &&
+        verPor !== "trabajo" && (
+          <p className="meta">
+            Si un material pertenece a varios, aparece completo en cada uno.
+          </p>
+        )}
     </>
   );
 }

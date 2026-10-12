@@ -208,3 +208,18 @@
 .royal .avance-trabajo{display:flex;align-items:center;gap:8px;flex:1;min-width:180px;max-width:360px}
 .royal .avance-trabajo .progreso{flex:1;margin:0;height:18px}
 .royal .avance-trabajo .progreso b{font-size:.72rem}
+.royal .ver-por{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:4px}
+.royal .grupo-mat{padding:0;overflow:hidden}
+.royal .grupo-mat-cab{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;color:var(--txt);border:0;border-radius:0;padding:12px 14px;text-align:left;cursor:pointer}
+.royal .grupo-mat-cab:hover:not(:disabled){background:#f6f8ff}
+.royal .grupo-mat-cab:disabled{cursor:default;opacity:.75}
+.royal .grupo-mat-nombre{font-size:1.02rem}
+.royal .grupo-mat-total{display:inline-flex;align-items:center;gap:10px}
+.royal .grupo-mat-barra{width:120px;height:8px;border-radius:6px;background:#eceef8;overflow:hidden;display:inline-block}
+.royal .grupo-mat-barra>span{display:block;height:100%;border-radius:6px}
+.royal .grupo-mat-flecha{min-width:18px;text-align:center;color:var(--mut);font-size:.85rem}
+.royal .grupo-mat .plegable-cuerpo{margin:0;padding:0 14px 12px}
+.royal .filtros input[type=search]{min-width:0;width:100%}
+@media (max-width:700px){.royal .grupo-mat-barra{width:70px}}
+.royal fieldset.ver-por{border:0;padding:0;margin:0 0 4px}
+.royal fieldset.ver-por legend{float:left;margin-right:6px;padding:6px 0}
