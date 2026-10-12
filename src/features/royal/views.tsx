@@ -2068,7 +2068,7 @@ function FaseCron({
   const [con, setCon] = useState("todos");
   const [esp, setEsp] = useState("todos");
   const [agr, setAgr] = useState<Sec>("contratista");
-  const [abierto, setAbierto] = useState(false);
+  const [abierto, setAbierto] = useState(partidas.length > 0);
   const ref = useRef<HTMLDivElement>(null);
   const lista = partidas.filter(
     (p) =>

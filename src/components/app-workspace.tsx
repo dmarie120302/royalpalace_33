@@ -87,7 +87,7 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
     const open = initialData.projects.filter((item) => !item.archived_at);
     return open.length === 1 ? open[0].id : null;
   });
-  const [view, setView] = useState<View>("trabajos");
+  const [view, setView] = useState<View>("registrar");
   const [query, setQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [editor, setEditor] = useState<EditorTarget | null>(null);
@@ -120,7 +120,7 @@ export function AppWorkspace({ initialData }: { initialData: Workspace }) {
   }, [notice, dismissNotice]);
   const selectProject = (id: string | null) => {
     setProjectId(id);
-    setView("trabajos");
+    setView("registrar");
     setQuery("");
     setShowArchived(false);
   };
