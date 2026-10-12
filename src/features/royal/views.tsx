@@ -1638,7 +1638,7 @@ const claveTienda = (t: string) =>
 export function Materiales(props: RoyalProps) {
   const { r, admin } = props;
   const [verPor, setVerPor] = useState<"lista" | "categoria" | "tienda">(
-    "lista",
+    "categoria",
   );
   const [fCat, setCat] = useState("todos");
   const [fTienda, setTienda] = useState("todos");
@@ -1850,7 +1850,16 @@ export function Materiales(props: RoyalProps) {
           icono: "tienda",
           items: orden.filter((m) => claveTienda(m.tienda) === t.k),
         }));
-  const visibles = grupos.filter((g) => g.items.length);
+  // By category every category is listed (also empty ones, e.g. a new
+  // "ELMEC"); by store only the stores that have purchases.
+  const visibles = grupos.filter(
+    (g) =>
+      g.items.length ||
+      (verPor === "categoria" &&
+        g.k !== "sin-categoria" &&
+        fTienda === "todos" &&
+        (fCat === "todos" || fCat === g.k)),
+  );
   const activo = fCat !== "todos" || fTienda !== "todos";
   return (
     <>
@@ -1863,8 +1872,8 @@ export function Materiales(props: RoyalProps) {
             value={verPor}
             onChange={(e) => setVerPor(e.target.value as typeof verPor)}
           >
-            <option value="lista">Lista (por fecha)</option>
             <option value="categoria">Categoría</option>
+            <option value="lista">Lista (por fecha)</option>
             <option value="tienda">Tienda</option>
           </select>
         </div>
@@ -1920,7 +1929,7 @@ export function Materiales(props: RoyalProps) {
             : '(los marcados como "incluido en pago" no se suman)'}
         </span>
       </p>
-      {!orden.length ? (
+      {!orden.length && verPor !== "categoria" ? (
         <p className="meta">No hay compras con estos filtros.</p>
       ) : verPor === "lista" ? (
         tabla(orden)
@@ -1949,9 +1958,14 @@ export function Materiales(props: RoyalProps) {
                 <button
                   className="sec plegable-btn"
                   aria-expanded={abierto}
+                  disabled={!g.items.length}
                   onClick={() => alternar(g.k)}
                 >
-                  {abierto ? "Ocultar ▴" : "Ver compras ▾"}
+                  {!g.items.length
+                    ? "Sin compras"
+                    : abierto
+                      ? "Ocultar ▴"
+                      : "Ver compras ▾"}
                 </button>
               </div>
               {abierto && (
