@@ -364,6 +364,11 @@ function Acciones({
 
 export function Espacios(props: RoyalProps) {
   const { r } = props;
+  const [abiertos, setAbiertos] = useState<string[]>([]);
+  const alternar = (id: string) =>
+    setAbiertos((v) =>
+      v.includes(id) ? v.filter((x) => x !== id) : [...v, id],
+    );
   if (!r.espacios.length)
     return (
       <p className="meta">
@@ -371,14 +376,24 @@ export function Espacios(props: RoyalProps) {
         Comedor, Dormitorio).
       </p>
     );
+  const datos = r.espacios.map((e) => {
+    const ts = r.partidas.filter((p) => p.espacioIds.includes(e.id));
+    const ms = r.materiales.filter((m) => m.espacioIds.includes(e.id));
+    return {
+      e,
+      ts,
+      ms,
+      pag: ts.reduce((a, p) => a + totalPagado(p), 0),
+      pres: ts.reduce((a, p) => a + (+p.presupuesto || 0), 0),
+      mat: sumaMat(ms),
+    };
+  });
+  const todos = abiertos.length === r.espacios.length;
+  let n = 0;
   return (
-    <div className="grid-esp">
-      {r.espacios.map((e) => {
-        const ts = r.partidas.filter((p) => p.espacioIds.includes(e.id));
-        const ms = r.materiales.filter((m) => m.espacioIds.includes(e.id));
-        const pag = ts.reduce((a, p) => a + totalPagado(p), 0);
-        const pres = ts.reduce((a, p) => a + (+p.presupuesto || 0), 0);
-        return (
+    <>
+      <div className="grid-esp">
+        {datos.map(({ e, ts, ms, pag, pres, mat }) => (
           <div
             className="card esp-card"
             key={e.id}
@@ -403,13 +418,166 @@ export function Espacios(props: RoyalProps) {
               Pagado <b>{fmt(pag)}</b> de {fmt(pres)}
             </div>
             <div className="meta">
-              Materiales propios <b>{fmt(sumaMat(ms))}</b>
+              Materiales propios <b>{fmt(mat)}</b>
             </div>
             <Barra valor={pag} total={pres} />
+            <button
+              className="sec mini"
+              onClick={() => {
+                if (!abiertos.includes(e.id)) alternar(e.id);
+                window.setTimeout(
+                  () =>
+                    document
+                      .getElementById(`desglose-${e.id}`)
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+                  50,
+                );
+              }}
+            >
+              Ver desglose ↓
+            </button>
           </div>
+        ))}
+      </div>
+      <div className="fila no-imprimir" style={{ margin: "18px 0 10px" }}>
+        <h2 style={{ margin: 0, fontSize: "1.1rem" }}>Desglose por espacio</h2>
+        <button
+          className="sec"
+          onClick={() => setAbiertos(todos ? [] : r.espacios.map((e) => e.id))}
+        >
+          {todos ? "Ocultar todos" : "Ver todos"}
+        </button>
+      </div>
+      {datos.map(({ e, ts, ms, pag, pres, mat }) => {
+        const abierto = abiertos.includes(e.id);
+        return (
+          <section
+            key={e.id}
+            id={`desglose-${e.id}`}
+            className="card plegable"
+            style={{ borderLeft: `6px solid ${e.color}` }}
+          >
+            <div className="plegable-cab">
+              <div className="plegable-tit">
+                <span
+                  className="ico big"
+                  style={{ background: `${e.color}22` }}
+                >
+                  <SvgIcono k={e.icono} color={e.color} />
+                </span>
+                <h2>{e.nombre}</h2>
+                <span className="meta">
+                  {ts.length} trabajo(s) · {ms.length} material(es)
+                </span>
+              </div>
+              <button
+                className="sec plegable-btn"
+                aria-expanded={abierto}
+                onClick={() => alternar(e.id)}
+              >
+                {abierto ? "Ocultar ▴" : "Ver desglose ▾"}
+              </button>
+            </div>
+            {abierto && (
+              <div className="plegable-cuerpo">
+                <div className="kpis">
+                  <div className="kpi">
+                    <span>Presupuesto de trabajos</span>
+                    <b>{fmt(pres)}</b>
+                  </div>
+                  <div className="kpi">
+                    <span>Pagado</span>
+                    <b>{fmt(pag)}</b>
+                  </div>
+                  <div className="kpi">
+                    <span>Pendiente</span>
+                    <b>{fmt(pres - pag)}</b>
+                  </div>
+                  <div className="kpi">
+                    <span>Materiales propios</span>
+                    <b>{fmt(mat)}</b>
+                  </div>
+                  <div className="kpi">
+                    <span>Gasto real</span>
+                    <b>{fmt(pag + mat)}</b>
+                  </div>
+                </div>
+                <Seccion n={n++} titulo="Trabajos en este espacio">
+                  {ts.length ? (
+                    <div style={{ overflowX: "auto" }}>
+                      <table>
+                        <tbody>
+                          <tr>
+                            <th>Trabajo</th>
+                            <th>Fase</th>
+                            <th>Contratistas</th>
+                            <th>Fechas</th>
+                            <th>Estado</th>
+                            <th className="num">Presupuesto</th>
+                            <th className="num">Pagado</th>
+                            <th className="num">Pendiente</th>
+                          </tr>
+                          {ts.map((p) => {
+                            const est = estadoTrabajo(p);
+                            const f = r.fases.find((x) => x.id === p.faseId);
+                            return (
+                              <tr key={p.id}>
+                                <td>
+                                  <b>{p.nombre}</b>
+                                  <Barra
+                                    valor={totalPagado(p)}
+                                    total={p.presupuesto}
+                                  />
+                                </td>
+                                <td>{f ? <Chip it={f} /> : "—"}</td>
+                                <td>
+                                  {p.contratistaIds.length ? (
+                                    <Chips
+                                      list={sinLetra(r.contratistas)}
+                                      ids={p.contratistaIds}
+                                    />
+                                  ) : (
+                                    "—"
+                                  )}
+                                </td>
+                                <td>
+                                  {p.fechaInicio
+                                    ? `${fechaCorta(aDia(p.fechaInicio))}${p.fechaFin ? " – " + fechaCorta(aDia(p.fechaFin)) : ""}`
+                                    : "—"}
+                                </td>
+                                <td style={{ color: est.c }}>{est.t}</td>
+                                <td className="num">{fmt(p.presupuesto)}</td>
+                                <td className="num">{fmt(totalPagado(p))}</td>
+                                <td className="num">
+                                  {fmt((+p.presupuesto || 0) - totalPagado(p))}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="meta">Sin trabajos en este espacio.</p>
+                  )}
+                </Seccion>
+                <Seccion n={n++} titulo="Materiales en este espacio">
+                  {ms.length ? (
+                    <TablaMateriales r={r} M={ms} conContratistas />
+                  ) : (
+                    <p className="meta">Sin materiales en este espacio.</p>
+                  )}
+                </Seccion>
+                <p className="meta">
+                  Si un trabajo o material pertenece a varios espacios, aparece
+                  completo en cada uno.
+                </p>
+              </div>
+            )}
+          </section>
         );
       })}
-    </div>
+    </>
   );
 }
 

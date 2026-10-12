@@ -191,3 +191,6 @@
 .royal .fase-cron-filtros select{min-width:0;width:100%}
 .royal .fase-cron-cab.cerrada{border-radius:10px}
 .royal .fase-cron-cab .fase-cron-btn{margin-left:auto;background:rgba(255,255,255,.95);color:var(--txt);padding:6px 12px;font-weight:600}
+.royal .esp-card > .sec.mini{margin-top:8px}
+.royal .plegable td .progreso{height:14px;margin:4px 0 0}
+.royal .plegable td .progreso b{font-size:.65rem}
